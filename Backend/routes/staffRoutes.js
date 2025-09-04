@@ -8,48 +8,27 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const staffs = await Staff.find({}, 'name className batchYear');
-    console.table(
-      staffs.map((s) => ({
-        Name: s.name,
-        Class: s.className,
-        Batch: s.batchYear,
-      }))
-    );
     res.json(staffs);
   } catch (err) {
-    console.error('Error fetching staff', err);
+    console.error(err);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
-// Get students of a staff by staffName
-router.get('/:staffName/students', async (req, res) => {
+// Get students of a staff by staffId
+router.get('/:staffId/students', async (req, res) => {
   try {
-    const { staffName } = req.params;
-    const staff = await Staff.findOne({ name: staffName });
-
+    const staff = await Staff.findById(req.params.staffId);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
 
     const students = await Student.find({
       className: staff.className,
-      batchYear: staff.batchYear,
-    });
-
-    console.log(
-      `Students of Staff: ${staff.name} (Class ${staff.className}, Batch ${staff.batchYear})`
-    );
-    console.table(
-      students.map((s) => ({
-        RollNo: s.rollNo,
-        RegisterNo: s.registerNo,
-        Name: s.name,
-        LeetCode: s.leetcodeLink || 'Not Interested',
-      }))
-    );
+      batchYear: staff.batchYear
+    }).sort({ rollNo: 1 });
 
     res.json(students);
   } catch (err) {
-    console.error('Error fetching staff’s students', err);
+    console.error(err);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });

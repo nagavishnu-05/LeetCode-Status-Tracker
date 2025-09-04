@@ -6,4 +6,4 @@ const staffSchema = new mongoose.Schema({
   batchYear: { type: Number, required: true }
 });
 
-export default mongoose.model('Staff', staffSchema, 'staffs'); // exact collection name
+export default mongoose.model('Staff', staffSchema, 'staffs');
