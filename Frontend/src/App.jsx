@@ -92,25 +92,46 @@ export default function App() {
   const handleDownload = () => {
     if (!selectedStaff || studentStats.length === 0) return;
 
-    const headers = [
+    const prevDate = studentStats[0]?.prev.date || "-";
+    const currDate = studentStats[0]?.curr.date || "-";
+
+    const header1 = [
       "S.No.",
       "Roll No.",
       "Register No.",
       "Name",
       "LeetCode Link",
-      `Easy (${studentStats[0]?.prev.date || "-"})`,
-      `Medium (${studentStats[0]?.prev.date || "-"})`,
-      `Hard (${studentStats[0]?.prev.date || "-"})`,
-      `Total (${studentStats[0]?.prev.date || "-"})`,
-      `Easy (${studentStats[0]?.curr.date || "-"})`,
-      `Medium (${studentStats[0]?.curr.date || "-"})`,
-      `Hard (${studentStats[0]?.curr.date || "-"})`,
-      `Total (${studentStats[0]?.curr.date || "-"})`,
+      `Previous Report (${prevDate})`,
+      "",
+      "",
+      "",
+      `Current Report (${currDate})`,
+      "",
+      "",
+      "",
       "Improvement",
     ];
 
+    const header2 = [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Easy",
+      "Medium",
+      "Hard",
+      "Total",
+      "Easy",
+      "Medium",
+      "Hard",
+      "Total",
+      "",
+    ];
+
     const sheetData = [
-      headers,
+      header1,
+      header2,
       ...studentStats.map((s) => [
         s.sNo,
         s.rollNo,
@@ -129,8 +150,32 @@ export default function App() {
       ]),
     ];
 
+    // Add 5 empty rows
+    for (let i = 0; i < 5; i++) {
+      sheetData.push([]);
+    }
+
+    // Add signature rows
+    const signatureRowIndex = sheetData.length;
+    sheetData.push([
+      "",
+      "Placement Coordinator Signature", // under Roll No.
+      "",
+      "",
+      "Head of the Department Signature", // under LeetCode Link
+    ]);
+
     const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-    worksheet["!cols"] = Array(headers.length).fill({ wch: 18 });
+
+    // Merge cells for headers
+    worksheet["!merges"] = [
+      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } }, // Previous Report
+      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } }, // Current Report
+      { s: { r: signatureRowIndex, c: 1 }, e: { r: signatureRowIndex, c: 3 } }, // Placement Coordinator
+      { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } }, // HOD
+    ];
+
+    worksheet["!cols"] = Array(header2.length).fill({ wch: 18 });
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats");
@@ -142,6 +187,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col p-6">
+      {/* Header */}
       <header className="w-full flex items-center justify-between mb-10">
         <img src="/vcet-logo.jpg" alt="VCET Logo" className="h-16 w-auto object-contain" />
         <div className="text-center">
@@ -155,6 +201,7 @@ export default function App() {
         <img src="/cse-logo.jpg" alt="CSE Logo" className="h-16 w-auto object-contain" />
       </header>
 
+      {/* Card */}
       <div className="flex-1 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -166,11 +213,10 @@ export default function App() {
             LeetCode Stats Report
           </h2>
 
+          {/* Staff Dropdown */}
           <form className="space-y-6 w-full flex flex-col items-center">
             <label className="block w-full">
-              <span className="text-base font-semibold text-gray-700">
-                Select Class In-Charge
-              </span>
+              <span className="text-base font-semibold text-gray-700">Select Class In-Charge</span>
               <select
                 className="mt-2 w-full rounded-[28px] border border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition px-4 py-4 text-lg shadow-sm hover:shadow-md"
                 value={selected}
@@ -200,6 +246,7 @@ export default function App() {
               </motion.div>
             )}
 
+            {/* Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
@@ -240,13 +287,14 @@ export default function App() {
         </motion.div>
       </div>
 
+      {/* Popup */}
       {popupOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl p-6 relative text-gray-900"
+            className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Students</h2>
@@ -271,24 +319,28 @@ export default function App() {
               <table className="w-full border-collapse text-sm text-gray-900">
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>
-                    {[
-                      "S.No.",
-                      "Roll No.",
-                      "Register No.",
-                      "Name",
-                      "LeetCode Link",
-                      `Easy (${studentStats[0]?.prev.date || "-"})`,
-                      `Medium (${studentStats[0]?.prev.date || "-"})`,
-                      `Hard (${studentStats[0]?.prev.date || "-"})`,
-                      `Total (${studentStats[0]?.prev.date || "-"})`,
-                      `Easy (${studentStats[0]?.curr.date || "-"})`,
-                      `Medium (${studentStats[0]?.curr.date || "-"})`,
-                      `Hard (${studentStats[0]?.curr.date || "-"})`,
-                      `Total (${studentStats[0]?.curr.date || "-"})`,
-                      "Improvement",
-                    ].map((h) => (
-                      <th key={h} className="border px-2 py-2 text-center font-semibold">{h}</th>
-                    ))}
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">S.No.</th>
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">Roll No.</th>
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">Register No.</th>
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">Name</th>
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">LeetCode Link</th>
+                    <th colSpan="4" className="border px-2 py-2 text-center font-semibold">
+                      Previous Report ({studentStats[0]?.prev.date || "-"})
+                    </th>
+                    <th colSpan="4" className="border px-2 py-2 text-center font-semibold">
+                      Current Report ({studentStats[0]?.curr.date || "-"})
+                    </th>
+                    <th rowSpan="2" className="border px-2 py-2 text-center font-semibold">Improvement</th>
+                  </tr>
+                  <tr>
+                    <th className="border px-2 py-2 text-center font-semibold">Easy</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Medium</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Hard</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Total</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Easy</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Medium</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Hard</th>
+                    <th className="border px-2 py-2 text-center font-semibold">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,12 +350,19 @@ export default function App() {
                       <td className="border px-2 py-1 text-center">{s.rollNo}</td>
                       <td className="border px-2 py-1 text-center">{s.registerNo}</td>
                       <td className="border px-2 py-1">{s.name}</td>
-                      <td className="border px-2 py-1">
+                      <td className="border px-2 py-1 text-center">
                         {s.leetcodeLink !== "-" ? (
-                          <a href={s.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                          <a
+                            href={s.leetcodeLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
                             Link
                           </a>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="border px-2 py-1 text-center">{s.prev.easy}</td>
                       <td className="border px-2 py-1 text-center">{s.prev.medium}</td>
