@@ -4,7 +4,6 @@ import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "./api";
 
-const API_BASE = "http://localhost:5000";
 
 export default function App() {
   const [staffs, setStaffs] = useState([]);
