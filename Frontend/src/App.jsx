@@ -237,18 +237,25 @@ export default function App() {
               <span className="text-base font-semibold text-gray-700">
                 Select Class In-Charge
               </span>
-              <select
-                className="mt-2 w-full rounded-[28px] border border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition px-4 py-4 text-lg shadow-sm hover:shadow-md"
-                value={selected}
-                onChange={handleSelectChange}
-              >
-                <option value="">-- Choose --</option>
-                {staffs.map((staff) => (
-                  <option key={staff._id} value={staff._id}>
-                    {staff.name} ({staff.className} - {staff.batchYear})
-                  </option>
-                ))}
-              </select>
+              <div className="relative mt-2 w-full">
+                <select
+                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition px-6 py-4 text-lg shadow-sm hover:shadow-md pr-12"
+                  value={selected}
+                  onChange={handleSelectChange}
+                >
+                  <option value="">-- Choose --</option>
+                  {staffs.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.name} ({staff.className} - {staff.batchYear})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
+                  <svg className="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </label>
 
             {selectedStaff && (
