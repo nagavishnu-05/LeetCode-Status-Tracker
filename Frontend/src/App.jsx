@@ -12,6 +12,7 @@ export default function App() {
   const [studentStats, setStudentStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchStaffs = async () => {
@@ -238,23 +239,51 @@ export default function App() {
                 Select Class In-Charge
               </span>
               <div className="relative mt-2 w-full">
-                <select
-                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12"
-                  value={selected}
-                  onChange={handleSelectChange}
+                <div 
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12 cursor-pointer flex justify-between items-center"
                 >
-                  <option value="">-- Choose --</option>
-                  {staffs.map((staff) => (
-                    <option key={staff._id} value={staff._id}>
-                      {staff.name} ({staff.className} - {staff.batchYear})
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
-                  <svg className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24">
-                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <span className={selected ? "" : "text-gray-500"}>
+                    {selected ? staffs.find(s => s._id === selected)?.name + 
+                              ` (${staffs.find(s => s._id === selected)?.className} - ${staffs.find(s => s._id === selected)?.batchYear})` 
+                            : "-- Choose --"}
+                  </span>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4">
+                    <svg className={`h-6 w-6 text-black transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24">
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
+                
+                {isOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 py-2 max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                    <div 
+                      className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-500"
+                      onClick={() => {
+                        handleSelectChange({ target: { value: "" } });
+                        setIsOpen(false);
+                      }}
+                    >
+                      -- Choose --
+                    </div>
+                    {staffs.map((staff) => (
+                      <div
+                        key={staff._id}
+                        className={`px-4 py-3 cursor-pointer transition-colors ${
+                          selected === staff._id 
+                            ? 'bg-black text-white' 
+                            : 'text-gray-900 hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          handleSelectChange({ target: { value: staff._id } });
+                          setIsOpen(false);
+                        }}
+                      >
+                        {staff.name} ({staff.className} - {staff.batchYear})
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </label>
 
