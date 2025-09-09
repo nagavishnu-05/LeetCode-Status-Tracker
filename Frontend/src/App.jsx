@@ -382,104 +382,116 @@ export default function App() {
               </div>
             </div>
 
-            <div className="overflow-x-auto max-h-[500px]">
-              <table className="w-full border-collapse text-sm text-gray-900">
+            <div className="overflow-x-auto max-h-[500px] rounded-xl">
+              <table className="w-full border-separate border-spacing-0 text-sm">
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200 first:rounded-tl-xl"
                     >
                       S.No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
                       Roll No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
                       Register No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
                       Name
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
                       LeetCode Link
                     </th>
                     <th
                       colSpan="4"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
-                      Previous Report ({studentStats[0]?.prev.date || "-"})
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Previous Report</span>
+                        <span className="text-sm text-gray-500">({studentStats[0]?.prev.date || "-"})</span>
+                      </div>
                     </th>
                     <th
                       colSpan="4"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
                     >
-                      Current Report ({studentStats[0]?.curr.date || "-"})
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Current Report</span>
+                        <span className="text-sm text-gray-500">({studentStats[0]?.curr.date || "-"})</span>
+                      </div>
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200 last:rounded-tr-xl"
                     >
                       Improvement
                     </th>
                   </tr>
                   <tr>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Easy
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Medium
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Hard
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Total
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Easy
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Medium
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Hard
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {studentStats.map((s) => (
-                    <tr key={s.rollNo} className="border-b hover:bg-gray-50">
-                      <td className="border px-2 py-1 text-center">{s.sNo}</td>
-                      <td className="border px-2 py-1 text-center">
+                  {studentStats.map((s, index) => (
+                    <tr 
+                      key={s.rollNo} 
+                      className={`
+                        transition-colors hover:bg-gray-50
+                        ${index === studentStats.length - 1 ? 'last-row' : ''}
+                      `}
+                    >
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">{s.sNo}</td>
+                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
                         {s.rollNo}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center text-gray-600">
                         {s.registerNo}
                       </td>
-                      <td className="border px-2 py-1">{s.name}</td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 font-medium">{s.name}</td>
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.leetcodeLink !== "-" ? (
                           <a
                             href={s.leetcodeLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-blue-600 hover:underline"
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                           >
                             Link
                           </a>
@@ -487,32 +499,36 @@ export default function App() {
                           "-"
                         )}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.prev.easy}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.prev.medium}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.prev.hard}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
                         {s.prev.total}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.curr.easy}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.curr.medium}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center">
                         {s.curr.hard}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
                         {s.curr.total}
                       </td>
-                      <td className="border px-2 py-1 text-center">
-                        {s.improvement}
+                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
+                        {typeof s.improvement === 'number' ? (
+                          <span className={`${s.improvement > 0 ? 'text-green-600' : s.improvement < 0 ? 'text-red-600' : ''}`}>
+                            {s.improvement > 0 ? '+' : ''}{s.improvement}
+                          </span>
+                        ) : s.improvement}
                       </td>
                     </tr>
                   ))}
