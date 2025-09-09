@@ -477,15 +477,15 @@ export default function App() {
                         ${index === studentStats.length - 1 ? 'last-row' : ''}
                       `}
                     >
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">{s.sNo}</td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">{s.sNo}</td>
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium">
                         {s.rollNo}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center text-gray-600">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center text-gray-600">
                         {s.registerNo}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 font-medium">{s.name}</td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 font-medium">{s.name}</td>
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
                         {s.leetcodeLink !== "-" ? (
                           <a
                             href={s.leetcodeLink}
@@ -499,28 +499,28 @@ export default function App() {
                           "-"
                         )}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
                         {s.prev.easy}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
                         {s.prev.medium}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
                         {s.prev.hard}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium bg-gray-50/50">
                         {s.prev.total}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
                         {s.curr.easy}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
                         {s.curr.medium}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
                         {s.curr.hard}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
+                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium">
                         {s.curr.total}
                       </td>
                       <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
