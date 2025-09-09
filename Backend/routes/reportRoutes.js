@@ -5,6 +5,53 @@ import Student from '../models/Student.js';
 
 const router = express.Router();
 
+// Get rankings for all students with optional batch year and class filters
+router.get('/rankings', async (req, res) => {
+  try {
+    const { batchYear, className } = req.query;
+    let query = {};
+
+    // Apply filters if provided
+    if (batchYear) query.batchYear = batchYear;
+    if (className) query.className = className;
+
+    const students = await Student.find(query).sort({ rollNo: 1 });
+
+    // Map through students and get their current stats
+    const studentsWithStats = students.map(student => {
+      const history = student.statsHistory;
+      let currentStats = { easy: 0, medium: 0, hard: 0, total: 0 };
+
+      if (history && history.length > 0) {
+        const latest = history[history.length - 1];
+        currentStats = {
+          easy: latest.easy || 0,
+          medium: latest.medium || 0,
+          hard: latest.hard || 0,
+          total: latest.total || 0
+        };
+      }
+
+      return {
+        _id: student._id,
+        rollNo: student.rollNo,
+        name: student.name,
+        className: student.className,
+        batchYear: student.batchYear,
+        curr: currentStats
+      };
+    });
+
+    // Sort by total problems solved in descending order
+    const sortedStudents = studentsWithStats.sort((a, b) => b.curr.total - a.curr.total);
+
+    res.json(sortedStudents);
+  } catch (err) {
+    console.error('Error fetching rankings:', err);
+    res.status(500).json({ message: 'Error fetching rankings' });
+  }
+});
+
 // Fetch all students for a staff with updated stats
 router.get('/:staffId', async (req, res) => {
   try {

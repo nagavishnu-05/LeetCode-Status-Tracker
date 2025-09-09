@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -32,6 +32,13 @@ export default function App() {
     fetchStaffs();
   }, []);
 
+  // Fetch rankings when filters change or when rankings popup is opened
+  useEffect(() => {
+    if (showRankings) {
+      fetchRankings();
+    }
+  }, [showRankings, selectedBatchYear, selectedClassName, fetchRankings]);
+
   const handleSelectChange = (e) => {
     const staffId = e.target.value;
     setSelected(staffId);
@@ -39,19 +46,20 @@ export default function App() {
     setSelectedStaff(staff || null);
   };
 
-  const fetchRankings = async () => {
+  const fetchRankings = useCallback(async () => {
     setLoadingRankings(true);
     try {
-      let url = '/rankings';
-      if (selectedBatchYear) {
-        url += `?batchYear=${selectedBatchYear}`;
-        if (selectedClassName) {
-          url += `&className=${selectedClassName}`;
-        }
-      }
+      let url = '/report/rankings';
+      const params = new URLSearchParams();
+      if (selectedBatchYear) params.append('batchYear', selectedBatchYear);
+      if (selectedClassName) params.append('className', selectedClassName);
+      
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+      
       const res = await api.get(url);
-      const sortedData = res.data.sort((a, b) => b.curr.total - a.curr.total);
-      setRankingsData(sortedData.map((student, index) => ({
+      // Server already sends sorted data, just add ranks
+      setRankingsData(res.data.map((student, index) => ({
         ...student,
         rank: index + 1
       })));
@@ -61,7 +69,7 @@ export default function App() {
     } finally {
       setLoadingRankings(false);
     }
-  };
+  }, [selectedBatchYear, selectedClassName]);
 
   const fetchStudentStats = async () => {
     if (!selectedStaff) return;
