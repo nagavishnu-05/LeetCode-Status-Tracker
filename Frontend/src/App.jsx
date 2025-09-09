@@ -237,25 +237,24 @@ export default function App() {
               <span className="text-base font-semibold text-gray-700">
                 Select Class In-Charge
               </span>
-              <div className="relative mt-2 w-full group">
+              <div className="relative mt-2 w-full">
                 <select
-                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-2 focus:ring-black/10 transition-all duration-300 px-6 py-4 text-lg shadow-sm hover:shadow-lg pr-12 cursor-pointer"
+                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12"
                   value={selected}
                   onChange={handleSelectChange}
                 >
-                  <option value="" className="text-gray-500">-- Choose --</option>
+                  <option value="">-- Choose --</option>
                   {staffs.map((staff) => (
-                    <option key={staff._id} value={staff._id} className="py-2">
+                    <option key={staff._id} value={staff._id}>
                       {staff.name} ({staff.className} - {staff.batchYear})
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 group-hover:translate-y-[2px] transition-transform duration-200">
-                  <svg className="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
+                  <svg className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24">
+                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <div className="absolute inset-0 rounded-[28px] pointer-events-none transition-all duration-300 opacity-0 group-hover:opacity-100 bg-black/[0.02]"></div>
               </div>
             </label>
 
