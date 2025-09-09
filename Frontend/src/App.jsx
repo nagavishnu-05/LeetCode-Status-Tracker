@@ -6,19 +6,27 @@ import api from "./api";
 
 
 export default function App() {
+  // Staff related state
   const [staffs, setStaffs] = useState([]);
   const [selected, setSelected] = useState("");
   const [selectedStaff, setSelectedStaff] = useState(null);
+  
+  // Student stats related state
   const [studentStats, setStudentStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
+  
+  // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Rankings related state
   const [showRankings, setShowRankings] = useState(false);
   const [rankingsData, setRankingsData] = useState([]);
   const [selectedBatchYear, setSelectedBatchYear] = useState("");
   const [selectedClassName, setSelectedClassName] = useState("");
   const [loadingRankings, setLoadingRankings] = useState(false);
 
+  // Fetch staff data on component mount
   useEffect(() => {
     const fetchStaffs = async () => {
       try {
@@ -26,6 +34,7 @@ export default function App() {
         setStaffs(res.data);
       } catch (err) {
         console.error("Error fetching staffs:", err);
+        setStaffs([]); // Reset on error
       }
     };
 
@@ -34,10 +43,8 @@ export default function App() {
 
   // Fetch rankings when filters change or when rankings popup is opened
   useEffect(() => {
-    if (showRankings) {
-      fetchRankings();
-    }
-  }, [showRankings, selectedBatchYear, selectedClassName, fetchRankings]);
+    fetchRankings();
+  }, [fetchRankings]);
 
   const handleSelectChange = (e) => {
     const staffId = e.target.value;
@@ -47,6 +54,8 @@ export default function App() {
   };
 
   const fetchRankings = useCallback(async () => {
+    if (!showRankings) return; // Don't fetch if rankings are not visible
+    
     setLoadingRankings(true);
     try {
       let url = '/report/rankings';
@@ -58,18 +67,19 @@ export default function App() {
       if (queryString) url += `?${queryString}`;
       
       const res = await api.get(url);
-      // Server already sends sorted data, just add ranks
-      setRankingsData(res.data.map((student, index) => ({
+      const rankedData = res.data.map((student, index) => ({
         ...student,
         rank: index + 1
-      })));
+      }));
+      setRankingsData(rankedData);
     } catch (err) {
       console.error('Error fetching rankings:', err);
+      setRankingsData([]); // Reset on error
       alert('Failed to fetch rankings');
     } finally {
       setLoadingRankings(false);
     }
-  }, [selectedBatchYear, selectedClassName]);
+  }, [selectedBatchYear, selectedClassName, showRankings]);
 
   const fetchStudentStats = async () => {
     if (!selectedStaff) return;
