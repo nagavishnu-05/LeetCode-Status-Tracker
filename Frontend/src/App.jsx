@@ -266,7 +266,9 @@ export default function App() {
                     >
                       -- Choose --
                     </div>
-                    {staffs.map((staff) => (
+                    {[...staffs]
+                      .sort((a, b) => a.batchYear - b.batchYear)
+                      .map((staff) => (
                       <div
                         key={staff._id}
                         className={`px-4 py-3 cursor-pointer transition-colors ${
@@ -279,7 +281,8 @@ export default function App() {
                           setIsOpen(false);
                         }}
                       >
-                        {staff.name} ({staff.className} - {staff.batchYear})
+                        <span className="font-medium">{staff.name}</span>
+                        <span className="text-sm ml-1">({staff.className} - {staff.batchYear})</span>
                       </div>
                     ))}
                   </div>
