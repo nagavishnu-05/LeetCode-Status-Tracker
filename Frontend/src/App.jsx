@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -12,36 +12,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [showRankings, setShowRankings] = useState(false);
-  const [rankingsData, setRankingsData] = useState([]);
-  const [selectedBatchYear, setSelectedBatchYear] = useState("");
-  const [selectedClassName, setSelectedClassName] = useState("");
-  const [loadingRankings, setLoadingRankings] = useState(false);
 
-  const fetchRankings = useCallback(async () => {
-    if (!showRankings) return;
-    setLoadingRankings(true);
-    try {
-      let url = '/report/rankings';
-      const params = new URLSearchParams();
-      if (selectedBatchYear) params.append('batchYear', selectedBatchYear);
-      if (selectedClassName) params.append('className', selectedClassName);
-      
-      const queryString = params.toString();
-      if (queryString) url += `?${queryString}`;
-      
-      const res = await api.get(url);
-      setRankingsData(res.data.map((student, index) => ({
-        ...student,
-        rank: index + 1
-      })));
-    } catch (err) {
-      console.error('Error fetching rankings:', err);
-      alert('Failed to fetch rankings');
-    } finally {
-      setLoadingRankings(false);
-    }
-  }, [selectedBatchYear, selectedClassName, showRankings]);
+
 
   useEffect(() => {
     const fetchStaffs = async () => {
@@ -55,11 +27,7 @@ export default function App() {
     fetchStaffs();
   }, []);
 
-  useEffect(() => {
-    if (showRankings) {
-      fetchRankings();
-    }
-  }, [fetchRankings]);
+
 
   const handleSelectChange = (e) => {
     const staffId = e.target.value;
@@ -268,18 +236,58 @@ export default function App() {
                 Select Class In-Charge
               </span>
               <div className="relative mt-2 w-full">
-                <select
-                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12"
-                  value={selected}
-                  onChange={handleSelectChange}
+                <div 
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 hover:border-gray-400 transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg cursor-pointer relative"
                 >
-                  <option value="">-- Choose --</option>
-                  {staffs.map((staff) => (
-                    <option key={staff._id} value={staff._id}>
-                      {staff.name} ({staff.className} - {staff.batchYear})
-                    </option>
-                  ))}
-                </select>
+                  <span className={selected ? "" : "text-gray-500"}>
+                    {selected ? staffs.find(s => s._id === selected)?.name + 
+                              ` (${staffs.find(s => s._id === selected)?.className} - ${staffs.find(s => s._id === selected)?.batchYear})` 
+                            : "-- Choose --"}
+                  </span>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg 
+                      className={`h-6 w-6 text-gray-600 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                
+                {isOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 py-2 max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                    <div 
+                      className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-500"
+                      onClick={() => {
+                        handleSelectChange({ target: { value: "" } });
+                        setIsOpen(false);
+                      }}
+                    >
+                      -- Choose --
+                    </div>
+                    {[...staffs]
+                      .sort((a, b) => a.batchYear - b.batchYear)
+                      .map((staff) => (
+                      <div
+                        key={staff._id}
+                        className={`px-4 py-3 cursor-pointer transition-colors ${
+                          selected === staff._id 
+                            ? 'bg-black text-white' 
+                            : 'text-gray-900 hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          handleSelectChange({ target: { value: staff._id } });
+                          setIsOpen(false);
+                        }}
+                      >
+                        <span className="font-medium">{staff.name}</span>
+                        <span className="text-sm ml-1">({staff.className} - {staff.batchYear})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
                   <svg
                     className="h-6 w-6 text-black"
@@ -375,6 +383,18 @@ export default function App() {
               <h2 className="text-2xl font-bold">Students</h2>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => alert('Rankings feature coming soon!')}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 13H10V19H4V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 5H20V11H14V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 5H10V11H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 13H20V19H14V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  View Rankings
+                </button>
+                <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full hover:bg-gray-900"
                 >
@@ -388,31 +408,31 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="overflow-x-auto max-h-[500px]">
-              <table className="w-full border-collapse text-sm text-gray-900">
-                <thead className="bg-gray-100 sticky top-0">
+            <div className="overflow-x-auto max-h-[500px] rounded-xl shadow-lg">
+              <table className="w-full border-separate border-spacing-0 text-sm bg-white">
+                <thead className="bg-gray-100/90 backdrop-blur sticky top-0">
                   <tr>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200 first:rounded-tl-xl"
                     >
                       S.No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
                     >
                       Roll No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
                     >
                       Register No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
                     >
                       Name
                     </th>
@@ -469,23 +489,28 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {studentStats.map((s) => (
-                    <tr key={s.rollNo} className="border-b hover:bg-gray-50">
-                      <td className="border px-2 py-1 text-center">{s.sNo}</td>
-                      <td className="border px-2 py-1 text-center">
+                  {studentStats.map((s, idx) => (
+                    <tr 
+                      key={s.rollNo} 
+                      className={`transition-colors hover:bg-gray-50/80 ${
+                        idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                      }`}
+                    >
+                      <td className="border-b border-gray-100 px-4 py-3 text-left">{s.sNo}</td>
+                      <td className="border-b border-gray-100 px-4 py-3 text-left font-medium">
                         {s.rollNo}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-100 px-4 py-3 text-left text-gray-600">
                         {s.registerNo}
                       </td>
-                      <td className="border px-2 py-1">{s.name}</td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="border-b border-gray-100 px-4 py-3 font-medium">{s.name}</td>
+                      <td className="border-b border-gray-100 px-4 py-3 text-left">
                         {s.leetcodeLink !== "-" ? (
                           <a
                             href={s.leetcodeLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-blue-600 hover:underline"
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                           >
                             Link
                           </a>
