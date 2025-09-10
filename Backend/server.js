@@ -8,27 +8,33 @@ import leetcodeRoutes from "./routes/leetcodeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 
 dotenv.config();
-
 const app = express();
 
-// Middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://leet-code-status-tracker.vercel.app",
+];
+
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
-// Connect Database
 connectDB();
 
-// Routes
 app.use("/staffs", staffRoutes);
 app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
 
-// PORT (Render uses process.env.PORT)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
