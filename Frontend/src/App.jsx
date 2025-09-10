@@ -12,8 +12,25 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showRankings, setShowRankings] = useState(false);
+  const [selectedBatchYear, setSelectedBatchYear] = useState("");
+  const [selectedClassName, setSelectedClassName] = useState("");
 
 
+
+  const [students, setStudents] = useState([]);
+
+  // Filter students based on selected batch year and class name
+  const filteredStudents = students.filter(student => {
+    const matchingStaff = staffs.find(staff => staff.className === student.className);
+    if (!matchingStaff) return false;
+
+    const batchYearMatch = !selectedBatchYear || matchingStaff.batchYear === selectedBatchYear;
+    const classNameMatch = !selectedClassName || student.className === selectedClassName;
+
+    return batchYearMatch && classNameMatch;
+  });
 
   useEffect(() => {
     const fetchStaffs = async () => {
@@ -25,6 +42,17 @@ export default function App() {
       }
     };
     fetchStaffs();
+
+    // Fetch students
+    const fetchStudents = async () => {
+      try {
+        const res = await api.get("/students");
+        setStudents(res.data);
+      } catch (err) {
+        console.error("Error fetching students:", err);
+      }
+    };
+    fetchStudents();
   }, []);
 
 
@@ -329,48 +357,66 @@ export default function App() {
               </motion.div>
             )}
 
-            {/* Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              type="button"
-              disabled={!selected || loading}
-              onClick={fetchStudentStats}
-              className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
-                  </svg>
-                  <span>Generating...</span>
-                </div>
-              ) : (
-                <span>Next</span>
-              )}
-            </motion.button>
+            {/* Buttons */}
+            <div className="flex flex-col gap-3 w-full sm:w-1/2 mx-auto">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                disabled={!selected || loading}
+                onClick={fetchStudentStats}
+                className="w-full flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    <span>Generating...</span>
+                  </div>
+                ) : (
+                  <span>Next</span>
+                )}
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={() => setShowRankings(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-[28px] bg-blue-600 text-white py-4 font-semibold hover:bg-blue-700 shadow-md transition-all duration-300"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 13H10V19H4V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14 5H20V11H14V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M4 5H10V11H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14 13H20V19H14V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                View Rankings
+              </motion.button>
+            </div>
           </form>
         </motion.div>
       </div>
 
-      {/* Popup */}
+      {/* Stats Popup */}
       {popupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <motion.div
@@ -547,6 +593,98 @@ export default function App() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Rankings Popup */}
+      {showRankings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">LeetCode Rankings</h2>
+              <button
+                onClick={() => setShowRankings(false)}
+                className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Batch Year</label>
+                <select
+                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 focus:border-black focus:ring-black transition-all"
+                  value={selectedBatchYear}
+                  onChange={(e) => {
+                    setSelectedBatchYear(e.target.value);
+                    setSelectedClassName("");
+                  }}
+                >
+                  <option value="">All Batch Years</option>
+                  {[...new Set(staffs.map(staff => staff.batchYear))].sort().map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name</label>
+                <select
+                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 focus:border-black focus:ring-black transition-all"
+                  value={selectedClassName}
+                  onChange={(e) => setSelectedClassName(e.target.value)}
+                  disabled={!selectedBatchYear}
+                >
+                  <option value="">All Classes</option>
+                  {staffs
+                    .filter(staff => staff.batchYear === selectedBatchYear)
+                    .map(staff => (
+                      <option key={staff.className} value={staff.className}>
+                        {staff.className}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No.</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Problems Solved</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Easy</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medium</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hard</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredStudents
+                    .sort((a, b) => b.totalSolved - a.totalSolved)
+                    .map((student, index) => (
+                      <tr key={student._id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.className}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.rollNo}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalSolved}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.easySolved}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.mediumSolved}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.hardSolved}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
