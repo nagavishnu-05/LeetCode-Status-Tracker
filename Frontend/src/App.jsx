@@ -410,18 +410,6 @@ export default function App() {
               <h2 className="text-2xl font-bold">Students</h2>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => alert('Rankings feature coming soon!')}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
-                >
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 13H10V19H4V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M14 5H20V11H14V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 5H10V11H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M14 13H20V19H14V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  View Rankings
-                </button>
-                <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full hover:bg-gray-900"
                 >
@@ -435,82 +423,82 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="overflow-x-auto max-h-[500px] rounded-xl shadow-lg">
-              <table className="w-full border-separate border-spacing-0 text-sm bg-white">
-                <thead className="bg-gray-100/90 backdrop-blur sticky top-0">
+            <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg">
+              <table className="min-w-full">
+                <thead>
                   <tr>
                     <th
                       rowSpan="2"
-                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200 first:rounded-tl-xl"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
                       S.No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
                       Roll No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
                       Register No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-200"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
                       Name
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
-                      LeetCode Link
+                      LeetCode
                     </th>
                     <th
                       colSpan="4"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200"
                     >
                       Previous Report ({studentStats[0]?.prev.date || "-"})
                     </th>
                     <th
                       colSpan="4"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200"
                     >
                       Current Report ({studentStats[0]?.curr.date || "-"})
                     </th>
                     <th
                       rowSpan="2"
-                      className="border px-2 py-2 text-center font-semibold"
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80"
                     >
                       Improvement
                     </th>
                   </tr>
-                  <tr>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                  <tr className="bg-gray-50/80">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Easy
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Medium
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Hard
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Total
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Easy
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Medium
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Hard
                     </th>
-                    <th className="border px-2 py-2 text-center font-semibold">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Total
                     </th>
                   </tr>
@@ -519,19 +507,17 @@ export default function App() {
                   {studentStats.map((s, idx) => (
                     <tr 
                       key={s.rollNo} 
-                      className={`transition-colors hover:bg-gray-50/80 ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                      }`}
+                      className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0"
                     >
-                      <td className="border-b border-gray-100 px-4 py-3 text-left">{s.sNo}</td>
-                      <td className="border-b border-gray-100 px-4 py-3 text-left font-medium">
+                      <td className="px-6 py-3.5 text-sm text-gray-900">{s.sNo}</td>
+                      <td className="px-6 py-3.5 text-sm text-gray-900">
                         {s.rollNo}
                       </td>
-                      <td className="border-b border-gray-100 px-4 py-3 text-left text-gray-600">
+                      <td className="px-6 py-3.5 text-sm text-gray-600">
                         {s.registerNo}
                       </td>
-                      <td className="border-b border-gray-100 px-4 py-3 font-medium">{s.name}</td>
-                      <td className="border-b border-gray-100 px-4 py-3 text-left">
+                      <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{s.name}</td>
+                      <td className="px-6 py-3.5 text-sm text-center">
                         {s.leetcodeLink !== "-" ? (
                           <a
                             href={s.leetcodeLink}
@@ -545,31 +531,31 @@ export default function App() {
                           "-"
                         )}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.prev.easy}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.prev.medium}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.prev.hard}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">
                         {s.prev.total}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.curr.easy}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.curr.medium}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">
                         {s.curr.hard}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">
                         {s.curr.total}
                       </td>
-                      <td className="border px-2 py-1 text-center">
+                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">
                         {s.improvement}
                       </td>
                     </tr>
@@ -637,33 +623,36 @@ export default function App() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto ring-1 ring-gray-200 rounded-lg">
+              <table className="min-w-full">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No.</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Problems Solved</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Easy</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medium</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hard</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rank</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Class</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Roll No.</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Problems Solved</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {filteredStudents
                     .sort((a, b) => b.totalSolved - a.totalSolved)
                     .map((student, index) => (
-                      <tr key={student._id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.className}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.rollNo}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalSolved}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.easySolved}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.mediumSolved}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.hardSolved}</td>
+                      <tr 
+                        key={student._id} 
+                        className="hover:bg-gray-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{index + 1}</td>
+                        <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{student.name}</td>
+                        <td className="px-6 py-3.5 text-sm text-gray-600">{student.className}</td>
+                        <td className="px-6 py-3.5 text-sm text-gray-600">{student.rollNo}</td>
+                        <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{student.totalSolved}</td>
+                        <td className="px-6 py-3.5 text-sm text-gray-600">{student.easySolved}</td>
+                        <td className="px-6 py-3.5 text-sm text-gray-600">{student.mediumSolved}</td>
+                        <td className="px-6 py-3.5 text-sm text-gray-600">{student.hardSolved}</td>
                       </tr>
                     ))}
                 </tbody>
