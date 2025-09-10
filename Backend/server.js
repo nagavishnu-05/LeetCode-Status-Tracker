@@ -6,6 +6,7 @@ import staffRoutes from "./routes/staffRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import leetcodeRoutes from "./routes/leetcodeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import rankingRoutes from "./routes/rankingRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,7 @@ app.use("/staffs", staffRoutes);
 app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
+app.use("/ranking", rankingRoutes);
 
 // ✅ Health check route (optional)
 app.get("/", (req, res) => {

@@ -17,19 +17,10 @@ export default function App() {
   const [selectedClassName, setSelectedClassName] = useState("");
   const [students, setStudents] = useState([]);
 
-  // Filter students based on selected batch year and class name
   const filteredStudents = students.filter((student) => {
-    const matchingStaff = staffs.find(
-      (staff) => staff.className === student.className
-    );
-    if (!matchingStaff) return false;
-
-    const batchYearMatch =
-      !selectedBatchYear || matchingStaff.batchYear === selectedBatchYear;
-    const classNameMatch =
-      !selectedClassName || student.className === selectedClassName;
-
-    return batchYearMatch && classNameMatch;
+    const batchMatch = selectedBatchYear ? student.batchYear === selectedBatchYear : true;
+    const classMatch = selectedClassName ? student.className === selectedClassName : true;
+    return batchMatch && classMatch;
   });
 
   useEffect(() => {
@@ -41,14 +32,16 @@ export default function App() {
         console.error("Error fetching staffs:", err);
       }
     };
+
     const fetchStudents = async () => {
       try {
-        const res = await api.get("/students");
+        const res = await api.get("/ranking");
         setStudents(res.data);
       } catch (err) {
         console.error("Error fetching students:", err);
       }
     };
+
     fetchStaffs();
     fetchStudents();
   }, []);
@@ -85,18 +78,14 @@ export default function App() {
               medium: history[history.length - 2].medium,
               hard: history[history.length - 2].hard,
               total: history[history.length - 2].total,
-              date: new Date(
-                history[history.length - 2].date
-              ).toLocaleDateString(),
+              date: new Date(history[history.length - 2].date).toLocaleDateString(),
             };
             curr = {
               easy: history[history.length - 1].easy,
               medium: history[history.length - 1].medium,
               hard: history[history.length - 1].hard,
               total: history[history.length - 1].total,
-              date: new Date(
-                history[history.length - 1].date
-              ).toLocaleDateString(),
+              date: new Date(history[history.length - 1].date).toLocaleDateString(),
             };
           }
         }
