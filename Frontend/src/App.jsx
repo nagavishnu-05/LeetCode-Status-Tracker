@@ -4,58 +4,22 @@ import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "./api";
 
-
 export default function App() {
-  // Staff related state
   const [staffs, setStaffs] = useState([]);
   const [selected, setSelected] = useState("");
   const [selectedStaff, setSelectedStaff] = useState(null);
-  
-  // Student stats related state
   const [studentStats, setStudentStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
-  
-  // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Rankings related state
   const [showRankings, setShowRankings] = useState(false);
   const [rankingsData, setRankingsData] = useState([]);
   const [selectedBatchYear, setSelectedBatchYear] = useState("");
   const [selectedClassName, setSelectedClassName] = useState("");
   const [loadingRankings, setLoadingRankings] = useState(false);
 
-  // Fetch staff data on component mount
-  useEffect(() => {
-    const fetchStaffs = async () => {
-      try {
-        const res = await api.get("/staffs");
-        setStaffs(res.data);
-      } catch (err) {
-        console.error("Error fetching staffs:", err);
-        setStaffs([]); // Reset on error
-      }
-    };
-
-    fetchStaffs();
-  }, []);
-
-  // Fetch rankings when filters change or when rankings popup is opened
-  useEffect(() => {
-    fetchRankings();
-  }, [fetchRankings]);
-
-  const handleSelectChange = (e) => {
-    const staffId = e.target.value;
-    setSelected(staffId);
-    const staff = staffs.find((s) => s._id === staffId);
-    setSelectedStaff(staff || null);
-  };
-
   const fetchRankings = useCallback(async () => {
-    if (!showRankings) return; // Don't fetch if rankings are not visible
-    
+    if (!showRankings) return;
     setLoadingRankings(true);
     try {
       let url = '/report/rankings';
@@ -67,32 +31,52 @@ export default function App() {
       if (queryString) url += `?${queryString}`;
       
       const res = await api.get(url);
-      const rankedData = res.data.map((student, index) => ({
+      setRankingsData(res.data.map((student, index) => ({
         ...student,
         rank: index + 1
-      }));
-      setRankingsData(rankedData);
+      })));
     } catch (err) {
       console.error('Error fetching rankings:', err);
-      setRankingsData([]); // Reset on error
       alert('Failed to fetch rankings');
     } finally {
       setLoadingRankings(false);
     }
   }, [selectedBatchYear, selectedClassName, showRankings]);
 
+  useEffect(() => {
+    const fetchStaffs = async () => {
+      try {
+        const res = await api.get("/staffs");
+        setStaffs(res.data);
+      } catch (err) {
+        console.error("Error fetching staffs:", err);
+      }
+    };
+    fetchStaffs();
+  }, []);
+
+  useEffect(() => {
+    if (showRankings) {
+      fetchRankings();
+    }
+  }, [fetchRankings]);
+
+  const handleSelectChange = (e) => {
+    const staffId = e.target.value;
+    setSelected(staffId);
+    const staff = staffs.find((s) => s._id === staffId);
+    setSelectedStaff(staff || null);
+  };
+
   const fetchStudentStats = async () => {
     if (!selectedStaff) return;
     setLoading(true);
-
     try {
       const res = await api.get(`/report/${selectedStaff._id}`);
       const students = res.data;
-
       const stats = students.map((student, index) => {
         let prev = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
         let curr = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
-
         if (student.statsHistory.length > 0) {
           const history = student.statsHistory;
           if (history.length === 1) {
@@ -124,7 +108,6 @@ export default function App() {
             };
           }
         }
-
         return {
           sNo: index + 1,
           rollNo: student.rollNo,
@@ -136,7 +119,6 @@ export default function App() {
           improvement: prev.total !== "-" ? curr.total - prev.total : "-",
         };
       });
-
       setStudentStats(stats);
       setPopupOpen(true);
     } catch (err) {
@@ -149,7 +131,6 @@ export default function App() {
 
   const handleDownload = () => {
     if (!selectedStaff || studentStats.length === 0) return;
-
     const prevDate = studentStats[0]?.prev.date || "-";
     const currDate = studentStats[0]?.curr.date || "-";
 
@@ -240,6 +221,7 @@ export default function App() {
 
     const date = new Date().toISOString().split("T")[0];
     const fileName = `${selectedStaff.batchYear}-CSE-${selectedStaff.className}-${date}.xlsx`;
+
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -286,54 +268,33 @@ export default function App() {
                 Select Class In-Charge
               </span>
               <div className="relative mt-2 w-full">
-                <div 
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12 cursor-pointer flex justify-between items-center"
+                <select
+                  className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12"
+                  value={selected}
+                  onChange={handleSelectChange}
                 >
-                  <span className={selected ? "" : "text-gray-500"}>
-                    {selected ? staffs.find(s => s._id === selected)?.name + 
-                              ` (${staffs.find(s => s._id === selected)?.className} - ${staffs.find(s => s._id === selected)?.batchYear})` 
-                            : "-- Choose --"}
-                  </span>
-                  <div className="absolute inset-y-0 right-0 flex items-center px-4">
-                    <svg className={`h-6 w-6 text-black transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24">
-                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
+                  <option value="">-- Choose --</option>
+                  {staffs.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.name} ({staff.className} - {staff.batchYear})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
+                  <svg
+                    className="h-6 w-6 text-black"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M6 9L12 15L18 9"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
-                
-                {isOpen && (
-                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 py-2 max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                    <div 
-                      className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-500"
-                      onClick={() => {
-                        handleSelectChange({ target: { value: "" } });
-                        setIsOpen(false);
-                      }}
-                    >
-                      -- Choose --
-                    </div>
-                    {[...staffs]
-                      .sort((a, b) => a.batchYear - b.batchYear)
-                      .map((staff) => (
-                      <div
-                        key={staff._id}
-                        className={`px-4 py-3 cursor-pointer transition-colors ${
-                          selected === staff._id 
-                            ? 'bg-black text-white' 
-                            : 'text-gray-900 hover:bg-gray-50'
-                        }`}
-                        onClick={() => {
-                          handleSelectChange({ target: { value: staff._id } });
-                          setIsOpen(false);
-                        }}
-                      >
-                        <span className="font-medium">{staff.name}</span>
-                        <span className="text-sm ml-1">({staff.className} - {staff.batchYear})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </label>
 
@@ -360,218 +321,48 @@ export default function App() {
               </motion.div>
             )}
 
-            {/* Buttons */}
-            <div className="flex flex-col gap-3 w-full sm:w-1/2 mx-auto">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                disabled={!selected || loading}
-                onClick={fetchStudentStats}
-                className="w-full flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      ></path>
-                    </svg>
-                    <span>Generating...</span>
-                  </div>
-                ) : (
-                  <span>Next</span>
-                )}
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={() => setShowRankings(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-[28px] bg-blue-600 text-white py-4 font-semibold hover:bg-blue-700 shadow-md transition-all duration-300"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 13H10V19H4V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14 5H20V11H14V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M4 5H10V11H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14 13H20V19H14V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                View Rankings
-              </motion.button>
-            </div>
+            {/* Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              type="button"
+              disabled={!selected || loading}
+              onClick={fetchStudentStats}
+              className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  <span>Generating...</span>
+                </div>
+              ) : (
+                <span>Next</span>
+              )}
+            </motion.button>
           </form>
         </motion.div>
       </div>
 
-      {/* Rankings Popup */}
-      {showRankings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">LeetCode Rankings</h2>
-              <button
-                onClick={() => setShowRankings(false)}
-                className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="flex gap-4 mb-6">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Batch Year</label>
-                <select
-                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 focus:border-black focus:ring-black"
-                  value={selectedBatchYear}
-                  onChange={(e) => {
-                    setSelectedBatchYear(e.target.value);
-                    setSelectedClassName("");
-                  }}
-                >
-                  <option value="">All Batch Years</option>
-                  {[...new Set(staffs.map(staff => staff.batchYear))].sort().map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class Name</label>
-                <select
-                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 focus:border-black focus:ring-black"
-                  value={selectedClassName}
-                  onChange={(e) => setSelectedClassName(e.target.value)}
-                  disabled={!selectedBatchYear}
-                >
-                  <option value="">All Classes</option>
-                  {staffs
-                    .filter(staff => staff.batchYear === selectedBatchYear)
-                    .map(staff => (
-                      <option key={staff.className} value={staff.className}>
-                        {staff.className}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto max-h-[500px] rounded-xl">
-              <table className="w-full border-separate border-spacing-0 text-sm">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200 first:rounded-tl-xl">
-                      Rank
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Roll No.
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Name
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Class
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Easy
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Medium
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200">
-                      Hard
-                    </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-r border-gray-200 last:rounded-tr-xl">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loadingRankings ? (
-                    <tr>
-                      <td colSpan="8" className="text-center py-8">
-                        <div className="flex items-center justify-center space-x-2">
-                          <svg
-                            className="animate-spin h-5 w-5 text-black"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            ></path>
-                          </svg>
-                          <span>Loading rankings...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    rankingsData.map((student) => (
-                      <tr key={student._id} className="hover:bg-gray-50">
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-semibold">
-                          {student.rank}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
-                          {student.rollNo}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3">
-                          {student.name}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
-                          {student.className}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
-                          {student.curr.easy}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
-                          {student.curr.medium}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
-                          {student.curr.hard}
-                        </td>
-                        <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium">
-                          {student.curr.total}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Stats Popup */}
+      {/* Popup */}
       {popupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <motion.div
@@ -580,27 +371,14 @@ export default function App() {
             transition={{ duration: 0.2 }}
             className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
           >
-              <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Students</h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowRankings(true)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
-                >
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 13H10V19H4V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M14 5H20V11H14V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 5H10V11H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M14 13H20V19H14V13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  View Rankings
-                </button>
                 <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full hover:bg-gray-900"
                 >
-                  <Download className="h-5 w-5" />
-                  Download Excel
+                  <Download className="h-5 w-5" /> Download Excel
                 </button>
                 <button
                   onClick={() => setPopupOpen(false)}
@@ -609,116 +387,105 @@ export default function App() {
                   ×
                 </button>
               </div>
-            </div>            <div className="overflow-x-auto max-h-[500px] rounded-xl">
-              <table className="w-full border-separate border-spacing-0 text-sm">
+            </div>
+            <div className="overflow-x-auto max-h-[500px]">
+              <table className="w-full border-collapse text-sm text-gray-900">
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200 first:rounded-tl-xl"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       S.No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       Roll No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       Register No.
                     </th>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       Name
                     </th>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       LeetCode Link
                     </th>
                     <th
                       colSpan="4"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
-                      <div className="flex items-center justify-center gap-2">
-                        <span>Previous Report</span>
-                        <span className="text-sm text-gray-500">({studentStats[0]?.prev.date || "-"})</span>
-                      </div>
+                      Previous Report ({studentStats[0]?.prev.date || "-"})
                     </th>
                     <th
                       colSpan="4"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
-                      <div className="flex items-center justify-center gap-2">
-                        <span>Current Report</span>
-                        <span className="text-sm text-gray-500">({studentStats[0]?.curr.date || "-"})</span>
-                      </div>
+                      Current Report ({studentStats[0]?.curr.date || "-"})
                     </th>
                     <th
                       rowSpan="2"
-                      className="bg-gray-100 px-4 py-3 text-center font-semibold border-b-2 border-gray-200 last:rounded-tr-xl"
+                      className="border px-2 py-2 text-center font-semibold"
                     >
                       Improvement
                     </th>
                   </tr>
                   <tr>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Easy
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Medium
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Hard
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Total
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Easy
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Medium
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Hard
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-center font-medium text-sm border-b-2 border-gray-200">
+                    <th className="border px-2 py-2 text-center font-semibold">
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {studentStats.map((s, index) => (
-                    <tr 
-                      key={s.rollNo} 
-                      className={`
-                        transition-colors hover:bg-gray-50
-                        ${index === studentStats.length - 1 ? 'last-row' : ''}
-                      `}
-                    >
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">{s.sNo}</td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium">
+                  {studentStats.map((s) => (
+                    <tr key={s.rollNo} className="border-b hover:bg-gray-50">
+                      <td className="border px-2 py-1 text-center">{s.sNo}</td>
+                      <td className="border px-2 py-1 text-center">
                         {s.rollNo}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center text-gray-600">
+                      <td className="border px-2 py-1 text-center">
                         {s.registerNo}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 font-medium">{s.name}</td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
+                      <td className="border px-2 py-1">{s.name}</td>
+                      <td className="border px-2 py-1 text-center">
                         {s.leetcodeLink !== "-" ? (
                           <a
                             href={s.leetcodeLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                            className="text-blue-600 hover:underline"
                           >
                             Link
                           </a>
@@ -726,36 +493,32 @@ export default function App() {
                           "-"
                         )}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
+                      <td className="border px-2 py-1 text-center">
                         {s.prev.easy}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
+                      <td className="border px-2 py-1 text-center">
                         {s.prev.medium}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center bg-gray-50/50">
+                      <td className="border px-2 py-1 text-center">
                         {s.prev.hard}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium bg-gray-50/50">
+                      <td className="border px-2 py-1 text-center">
                         {s.prev.total}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
+                      <td className="border px-2 py-1 text-center">
                         {s.curr.easy}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
+                      <td className="border px-2 py-1 text-center">
                         {s.curr.medium}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center">
+                      <td className="border px-2 py-1 text-center">
                         {s.curr.hard}
                       </td>
-                      <td className="border-b border-r border-gray-200 px-4 py-3 text-center font-medium">
+                      <td className="border px-2 py-1 text-center">
                         {s.curr.total}
                       </td>
-                      <td className="border-b border-gray-200 px-4 py-3 text-center font-medium">
-                        {typeof s.improvement === 'number' ? (
-                          <span className={`${s.improvement > 0 ? 'text-green-600' : s.improvement < 0 ? 'text-red-600' : ''}`}>
-                            {s.improvement > 0 ? '+' : ''}{s.improvement}
-                          </span>
-                        ) : s.improvement}
+                      <td className="border px-2 py-1 text-center">
+                        {s.improvement}
                       </td>
                     </tr>
                   ))}
