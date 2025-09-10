@@ -1,21 +1,22 @@
 import express from "express";
 import axios from "axios";
-import Staff from "../models/Staff.js";
 import Student from "../models/Student.js";
 
 const router = express.Router();
 
-// Fetch all students for a staff with updated stats
-router.get("/:staffId", async (req, res) => {
+// 🔥 Fetch students dynamically by className & batchYear only
+router.get("/", async (req, res) => {
   try {
-    const staff = await Staff.findById(req.params.staffId);
-    if (!staff) return res.status(404).json({ message: "Staff not found" });
+    const { className, batchYear } = req.query;
 
-    const students = await Student.find({
-      className: staff.className,
-      batchYear: staff.batchYear,
-    }).sort({ rollNo: 1 });
+    // Build dynamic query
+    const query = {};
+    if (className && className !== "all") query.className = className;
+    if (batchYear && batchYear !== "all") query.batchYear = batchYear;
 
+    const students = await Student.find(query).sort({ rollNo: 1 });
+
+    // Update stats
     await Promise.all(
       students.map(async (student) => {
         if (student.leetcodeLink) {

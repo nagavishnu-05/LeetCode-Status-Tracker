@@ -17,40 +17,26 @@ export default function App() {
   const [selectedClassName, setSelectedClassName] = useState("");
   const [students, setStudents] = useState([]);
 
-  const filteredStudents = students.filter((student) => {
-    const batchMatch = selectedBatchYear ? student.batchYear === selectedBatchYear : true;
-    const classMatch = selectedClassName ? student.className === selectedClassName : true;
-    return batchMatch && classMatch;
-  });
-
   useEffect(() => {
-    const fetchStaffs = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/staffs");
-        setStaffs(res.data);
+        const [staffRes, studentRes] = await Promise.all([
+          api.get("/staffs"),
+          api.get("/ranking"),
+        ]);
+        setStaffs(staffRes.data);
+        setStudents(studentRes.data);
       } catch (err) {
-        console.error("Error fetching staffs:", err);
+        console.error("Error fetching data:", err);
       }
     };
-
-    const fetchStudents = async () => {
-      try {
-        const res = await api.get("/ranking");
-        setStudents(res.data);
-      } catch (err) {
-        console.error("Error fetching students:", err);
-      }
-    };
-
-    fetchStaffs();
-    fetchStudents();
+    fetchData();
   }, []);
 
   const handleSelectChange = (e) => {
     const staffId = e.target.value;
     setSelected(staffId);
-    const staff = staffs.find((s) => s._id === staffId);
-    setSelectedStaff(staff || null);
+    setSelectedStaff(staffs.find((s) => s._id === staffId) || null);
   };
 
   const fetchStudentStats = async () => {
@@ -58,37 +44,34 @@ export default function App() {
     setLoading(true);
     try {
       const res = await api.get(`/report/${selectedStaff._id}`);
-      const students = res.data;
-      const stats = students.map((student, index) => {
+      const studentsData = res.data;
+
+      const stats = studentsData.map((student, index) => {
+        const history = student.statsHistory || [];
         let prev = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
         let curr = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
-        if (student.statsHistory.length > 0) {
-          const history = student.statsHistory;
-          if (history.length === 1) {
-            curr = {
-              easy: history[0].easy,
-              medium: history[0].medium,
-              hard: history[0].hard,
-              total: history[0].total,
-              date: new Date(history[0].date).toLocaleDateString(),
-            };
-          } else if (history.length >= 2) {
-            prev = {
-              easy: history[history.length - 2].easy,
-              medium: history[history.length - 2].medium,
-              hard: history[history.length - 2].hard,
-              total: history[history.length - 2].total,
-              date: new Date(history[history.length - 2].date).toLocaleDateString(),
-            };
-            curr = {
-              easy: history[history.length - 1].easy,
-              medium: history[history.length - 1].medium,
-              hard: history[history.length - 1].hard,
-              total: history[history.length - 1].total,
-              date: new Date(history[history.length - 1].date).toLocaleDateString(),
-            };
-          }
+
+        if (history.length > 0) {
+          const latest = history[history.length - 1];
+          curr = {
+            easy: latest.easy,
+            medium: latest.medium,
+            hard: latest.hard,
+            total: latest.total,
+            date: new Date(latest.date).toLocaleDateString(),
+          };
         }
+        if (history.length > 1) {
+          const prevData = history[history.length - 2];
+          prev = {
+            easy: prevData.easy,
+            medium: prevData.medium,
+            hard: prevData.hard,
+            total: prevData.total,
+            date: new Date(prevData.date).toLocaleDateString(),
+          };
+        }
+
         return {
           sNo: index + 1,
           rollNo: student.rollNo,
@@ -97,9 +80,13 @@ export default function App() {
           leetcodeLink: student.leetcodeLink || "-",
           prev,
           curr,
-          improvement: prev.total !== "-" ? curr.total - prev.total : "-",
+          improvement:
+            prev.total !== "-" && curr.total !== "-"
+              ? curr.total - prev.total
+              : "-",
         };
       });
+
       setStudentStats(stats);
       setPopupOpen(true);
     } catch (err) {
@@ -147,6 +134,7 @@ export default function App() {
       "Total",
       "",
     ];
+
     const sheetData = [
       header1,
       header2,
@@ -167,6 +155,7 @@ export default function App() {
         s.improvement,
       ]),
     ];
+
     for (let i = 0; i < 5; i++) sheetData.push([]);
     const signatureRowIndex = sheetData.length;
     sheetData.push([
@@ -176,6 +165,7 @@ export default function App() {
       "",
       "Head of the Department Signature",
     ]);
+
     const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
     worksheet["!merges"] = [
       { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },
@@ -184,12 +174,23 @@ export default function App() {
       { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } },
     ];
     worksheet["!cols"] = Array(header2.length).fill({ wch: 18 });
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats");
     const date = new Date().toISOString().split("T")[0];
     const fileName = `${selectedStaff.batchYear}-CSE-${selectedStaff.className}-${date}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
+
+  const filteredStudents = students
+    .filter((student) => {
+      const matchBatch =
+        !selectedBatchYear || student.batchYear === selectedBatchYear;
+      const matchClass =
+        !selectedClassName || student.className === selectedClassName;
+      return matchBatch && matchClass;
+    })
+    .sort((a, b) => b.totalSolved - a.totalSolved);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col p-6">
@@ -565,8 +566,8 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900 mx-auto"
-          >
+              className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900 mx-auto">
+          
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">LeetCode Rankings</h2>
               <button
@@ -603,11 +604,13 @@ export default function App() {
                   disabled={!selectedBatchYear}
                 >
                   <option value="">All Classes</option>
-                  {staffs
-                    .filter(staff => staff.batchYear === selectedBatchYear)
-                    .map(staff => (
-                      <option key={staff.className} value={staff.className}>
-                        {staff.className}
+                  {selectedBatchYear && 
+                    (parseInt(selectedBatchYear) >= 2025 ? 
+                      ['A', 'B', 'C', 'D'] : 
+                      ['A', 'B', 'C']
+                    ).map(section => (
+                      <option key={section} value={`CSE-${section}`}>
+                        {section}
                       </option>
                     ))}
                 </select>
