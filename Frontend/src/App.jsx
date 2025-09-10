@@ -558,14 +558,16 @@ export default function App() {
 
       {/* Rankings Popup */}
       {showRankings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" onClick={() => setShowRankings(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900 mx-auto"
           >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">LeetCode Rankings</h2>
               <button
                 onClick={() => setShowRankings(false)}
@@ -612,9 +614,9 @@ export default function App() {
               </div>
             </div>
 
-            <div className="overflow-x-auto ring-1 ring-gray-200 rounded-lg">
+            <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg">
               <table className="min-w-full">
-                <thead>
+                <thead className="bg-gray-50/80 sticky top-0">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rank</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
@@ -648,6 +650,7 @@ export default function App() {
               </table>
             </div>
           </motion.div>
+          </div>
         </div>
       )}
     </div>
