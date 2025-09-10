@@ -8,16 +8,17 @@ router.get("/", async (req, res) => {
     const { batchYear, className } = req.query;
     const filter = {};
 
-    // Only filter if it's not "All"
-    if (batchYear && batchYear !== "All") filter.batchYear = Number(batchYear);
-    if (className && className !== "All") filter.className = className;
+    // Filter only if value is provided and not "all" (case-insensitive)
+    if (batchYear && batchYear.toLowerCase() !== "all") filter.batchYear = Number(batchYear);
+    if (className && className.toLowerCase() !== "all") filter.className = className;
 
     const students = await Student.find(filter);
 
-    // Always return latest stats sorted by totalSolved desc
+    // Map students with their latest stats
     const result = students
       .map((student) => {
-        const latest = student.statsHistory?.[student.statsHistory.length - 1] || {};
+        const latest =
+          student.statsHistory?.[student.statsHistory.length - 1] || {};
         return {
           _id: student._id,
           name: student.name,
