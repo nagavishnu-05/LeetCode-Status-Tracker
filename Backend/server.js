@@ -13,21 +13,21 @@ const app = express();
 // ✅ Allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://leet-code-status-tracker.vercel.app"
+  "https://leet-code-status-tracker.vercel.app",
 ];
 
 app.use(express.json());
 
-// ✅ CORS Middleware
+// ✅ Safer CORS setup
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman or server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`❌ Blocked CORS for origin: ${origin}`);
+        callback(null, false); // don't throw error, just block
       }
-      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
@@ -41,6 +41,11 @@ app.use("/staffs", staffRoutes);
 app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
+
+// ✅ Health check route (optional)
+app.get("/", (req, res) => {
+  res.json({ status: "Backend is running!" });
+});
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;

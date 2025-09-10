@@ -12,22 +12,22 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [showRankings, setShowRankings] = useState(false);
   const [selectedBatchYear, setSelectedBatchYear] = useState("");
   const [selectedClassName, setSelectedClassName] = useState("");
-
-
-
   const [students, setStudents] = useState([]);
 
   // Filter students based on selected batch year and class name
-  const filteredStudents = students.filter(student => {
-    const matchingStaff = staffs.find(staff => staff.className === student.className);
+  const filteredStudents = students.filter((student) => {
+    const matchingStaff = staffs.find(
+      (staff) => staff.className === student.className
+    );
     if (!matchingStaff) return false;
 
-    const batchYearMatch = !selectedBatchYear || matchingStaff.batchYear === selectedBatchYear;
-    const classNameMatch = !selectedClassName || student.className === selectedClassName;
+    const batchYearMatch =
+      !selectedBatchYear || matchingStaff.batchYear === selectedBatchYear;
+    const classNameMatch =
+      !selectedClassName || student.className === selectedClassName;
 
     return batchYearMatch && classNameMatch;
   });
@@ -41,9 +41,6 @@ export default function App() {
         console.error("Error fetching staffs:", err);
       }
     };
-    fetchStaffs();
-
-    // Fetch students
     const fetchStudents = async () => {
       try {
         const res = await api.get("/students");
@@ -52,10 +49,9 @@ export default function App() {
         console.error("Error fetching students:", err);
       }
     };
+    fetchStaffs();
     fetchStudents();
   }, []);
-
-
 
   const handleSelectChange = (e) => {
     const staffId = e.target.value;
@@ -146,7 +142,6 @@ export default function App() {
       "",
       "Improvement",
     ];
-
     const header2 = [
       "",
       "",
@@ -163,7 +158,6 @@ export default function App() {
       "Total",
       "",
     ];
-
     const sheetData = [
       header1,
       header2,
@@ -184,40 +178,27 @@ export default function App() {
         s.improvement,
       ]),
     ];
-
-    // Add 5 empty rows
-    for (let i = 0; i < 5; i++) {
-      sheetData.push([]);
-    }
-
-    // Add signature rows
+    for (let i = 0; i < 5; i++) sheetData.push([]);
     const signatureRowIndex = sheetData.length;
     sheetData.push([
       "",
-      "Placement Coordinator Signature", // under Roll No.
+      "Placement Coordinator Signature",
       "",
       "",
-      "Head of the Department Signature", // under LeetCode Link
+      "Head of the Department Signature",
     ]);
-
     const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-
-    // Merge cells for headers
     worksheet["!merges"] = [
-      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } }, // Previous Report
-      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } }, // Current Report
-      { s: { r: signatureRowIndex, c: 1 }, e: { r: signatureRowIndex, c: 3 } }, // Placement Coordinator
-      { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } }, // HOD
+      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },
+      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
+      { s: { r: signatureRowIndex, c: 1 }, e: { r: signatureRowIndex, c: 3 } },
+      { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } },
     ];
-
     worksheet["!cols"] = Array(header2.length).fill({ wch: 18 });
-
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats");
-
     const date = new Date().toISOString().split("T")[0];
     const fileName = `${selectedStaff.batchYear}-CSE-${selectedStaff.className}-${date}.xlsx`;
-
     XLSX.writeFile(workbook, fileName);
   };
 
