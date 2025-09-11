@@ -18,67 +18,86 @@ export default function App() {
   const [rankings, setRankings] = useState([]);
   const [loadingRankings, setLoadingRankings] = useState(false);
   const [distinctBatchYears, setDistinctBatchYears] = useState([]);
-  const [distinctClassNames, setDistinctClassNames] = useState([]);
+  const [classOptions, setClassOptions] = useState([]);
 
   // Rankings fetch
   useEffect(() => {
-    const loadRankings = async () => {
-      if (!roundsOpen || !selectedClassName || !selectedBatchYear) {
-        setRankings([]);
-        return;
-      }
-      try {
-        setLoadingRankings(true);
-        const match = staffs.find(
-          (s) =>
-            s.className === selectedClassName &&
-            String(s.batchYear) === String(selectedBatchYear)
-        );
-        if (!match) {
-          setRankings([]);
-          return;
-        }
-        const res = await api.get(`/report/${match._id}`);
-        const students = res.data || [];
-        const rows = students
-          .map((student) => {
-            let easy = 0,
-              medium = 0,
-              hard = 0,
-              total = 0;
-            if (student.statsHistory && student.statsHistory.length > 0) {
-              const last = student.statsHistory[student.statsHistory.length - 1];
-              easy = last.easy;
-              medium = last.medium;
-              hard = last.hard;
-              total = last.total;
-            }
-            return {
-              rollNo: student.rollNo,
-              name: student.name,
-              leetcodeLink: student.leetcodeLink || "-",
-              easy,
-              medium,
-              hard,
-              total,
-            };
-          })
-          .sort((a, b) => b.total - a.total)
-          .map((row, idx) => ({ ...row, rank: idx + 1 }));
-        setRankings(rows);
-      } catch (err) {
-        console.error("Error loading rankings:", err);
-        setRankings([]);
-      } finally {
-        setLoadingRankings(false);
-      }
-    };
-    loadRankings();
-  }, [roundsOpen, selectedClassName, selectedBatchYear, staffs]);
+  const loadRankings = async () => {
+    // Only run if rounds modal is open AND a batch/year is selected
+    if (!roundsOpen || !selectedBatchYear || selectedBatchYear === "") {
+      setRankings([]);
+      return;
+    }
+
+    try {
+      setLoadingRankings(true);
+
+      const classParam =
+        selectedClassName === "" || selectedClassName === "all"
+          ? undefined
+          : selectedClassName;
+      const batchParam =
+        selectedBatchYear === "" || selectedBatchYear === "all"
+          ? undefined
+          : selectedBatchYear;
+
+      // Build URL only if at least one param exists
+      let url = "/rounds?";
+      if (batchParam) url += `batchYear=${batchParam}&`;
+      if (classParam) url += `className=${classParam}`;
+
+      const res = await api.get(url);
+      const students = res.data || [];
+
+      const rows = students
+        .map((student) => {
+          let easy = 0, medium = 0, hard = 0, total = 0;
+          if (student.statsHistory?.length) {
+            const last = student.statsHistory[student.statsHistory.length - 1];
+            easy = last.easy;
+            medium = last.medium;
+            hard = last.hard;
+            total = last.total;
+          }
+          return {
+            rollNo: student.rollNo,
+            name: student.name,
+            leetcodeLink: student.leetcodeLink || "-",
+            easy,
+            medium,
+            hard,
+            total,
+          };
+        })
+        .sort((a, b) => b.total - a.total)
+        .map((row, idx) => ({ ...row, rank: idx + 1 }));
+
+      setRankings(rows);
+    } catch (err) {
+      console.error("Error loading rankings:", err);
+      setRankings([]);
+    } finally {
+      setLoadingRankings(false);
+    }
+  };
+
+  loadRankings();
+}, [roundsOpen, selectedClassName, selectedBatchYear]);
+
+
 
   // Reset class when batch changes
   useEffect(() => {
     setSelectedClassName("");
+    let classes = [];
+    if (selectedBatchYear === "" || selectedBatchYear === "all") {
+      classes = ['A', 'B', 'C', 'D'];
+    } else if (parseInt(selectedBatchYear) >= 2025) {
+      classes = ['A', 'B', 'C', 'D'];
+    } else {
+      classes = ['A', 'B', 'C'];
+    }
+    setClassOptions(classes);
   }, [selectedBatchYear]);
 
   // Staffs fetch
@@ -94,13 +113,12 @@ export default function App() {
     fetchStaffs();
   }, []);
 
-  // Distinct batch years and class names fetch
+  // Distinct batch years fetch
   useEffect(() => {
     const fetchDistinct = async () => {
       try {
         const res = await api.get("/staffs/distinct");
         setDistinctBatchYears(res.data?.batchYears || []);
-        setDistinctClassNames(res.data?.classNames || []);
       } catch (err) {
         console.error("Error fetching distinct staff values:", err);
       }
@@ -433,20 +451,21 @@ export default function App() {
                 <label className="block w-1/2"> 
                   <span className="text-sm font-semibold text-gray-700">Select Batch Year</span> 
                   <div className="relative mt-2 w-full"> 
-                    <select 
-                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer" 
-                      value={selectedBatchYear} 
-                      onChange={(e) => setSelectedBatchYear(e.target.value)} 
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }} 
-                    > 
-                      <option value="">-- Choose Batch Year --</option> 
+                    <select
+                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                      value={selectedBatchYear}
+                      onChange={(e) => setSelectedBatchYear(e.target.value)}
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }}
+                    >
+                      <option value="">-- Choose Batch Year --</option>
+                      <option value="all">All Batches</option>
                       {[...distinctBatchYears]
                         .filter(Boolean)
                         .sort((a,b) => a - b)
                         .map((yr) => (
                           <option key={yr} value={yr}>{yr}</option>
                         ))}
-                    </select> 
+                    </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6"> 
                       <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"> 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/> 
@@ -457,20 +476,17 @@ export default function App() {
                 <label className="block w-1/2"> 
                   <span className="text-sm font-semibold text-gray-700">Select Class</span> 
                   <div className="relative mt-2 w-full"> 
-                    <select 
-                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer" 
-                      value={selectedClassName} 
-                      onChange={(e) => setSelectedClassName(e.target.value)} 
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }} 
-                    > 
-                      <option value="">-- Choose Class --</option> 
-                      {[...distinctClassNames]
-                        .filter(Boolean)
-                        .sort()
-                        .map((cls) => (
-                          <option key={cls} value={cls}>{cls}</option>
-                        ))}
-                    </select> 
+                    <select
+                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                      value={selectedClassName}
+                      onChange={(e) => setSelectedClassName(e.target.value)}
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }}
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classOptions.map((cls) => (
+                        <option key={cls} value={cls === 'All Classes' ? 'all' : cls}>{cls}</option>
+                      ))}
+                    </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6"> 
                       <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"> 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/> 
