@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
 // Get students of a staff by staffId
 router.get("/:staffId/students", async (req, res) => {
   try {
-    const staff = await Staff.findById(req.params.staffId);
+    const staff = await Staff.findOne({ name: req.params.staffId });
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
     const students = await Student.find({
