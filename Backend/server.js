@@ -6,6 +6,7 @@ import staffRoutes from "./routes/staffRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import leetcodeRoutes from "./routes/leetcodeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import roundsRoutes from "./routes/roundsRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -35,6 +36,7 @@ app.use("/staffs", staffRoutes);
 app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
+app.use("/rounds", roundsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

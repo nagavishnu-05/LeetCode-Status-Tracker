@@ -33,4 +33,16 @@ router.get("/:staffId/students", async (req, res) => {
   }
 });
 
+// Get unique batchYears and classNames
+router.get("/distinct", async (req, res) => {
+  try {
+    const batchYears = await Staff.distinct("batchYear");
+    const classNames = await Staff.distinct("className");
+    res.json({ batchYears, classNames });
+  } catch (err) {
+    console.error("❌ Error fetching distinct values:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 export default router;

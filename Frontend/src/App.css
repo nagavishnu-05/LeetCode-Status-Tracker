@@ -41,3 +41,66 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Custom Select Styles */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+/* Style the dropdown options container */
+select option {
+  margin: 4px 0;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Style for the dropdown container */
+select {
+  background-color: white;
+}
+
+/* Webkit (Chrome, Safari) specific styles for dropdown */
+select::-webkit-listbox {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 4px;
+  margin-top: 4px;
+}
+
+/* Webkit option styles */
+select option::-webkit-option-marker {
+  display: none;
+}
+
+select option:checked {
+  background: #f3f4f6 linear-gradient(0deg, #f3f4f6 0%, #f3f4f6 100%);
+}
+
+select option:hover {
+  background: #f9fafb;
+}
+
+/* Firefox specific styles */
+@-moz-document url-prefix() {
+  select {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  select option {
+    background-color: white;
+    padding: 8px 12px;
+  }
+  
+  select option:hover {
+    background-color: #f9fafb;
+  }
+}

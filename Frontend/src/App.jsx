@@ -1,143 +1,264 @@
 import { useState, useEffect } from "react"; 
-import { motion } from "framer-motion"; 
+import { motion as Motion } from "framer-motion"; 
 import { Download } from "lucide-react"; 
 import * as XLSX from "xlsx"; 
 import api from "./api"; 
+import './select.css';
 
 export default function App() { 
-  const [staffs, setStaffs] = useState([]); 
-  const [selected, setSelected] = useState(""); 
-  const [selectedStaff, setSelectedStaff] = useState(null); 
-  const [studentStats, setStudentStats] = useState([]); 
-  const [loading, setLoading] = useState(false); 
-  const [popupOpen, setPopupOpen] = useState(false); 
+  const [staffs, setStaffs] = useState([]);
+  const [selected, setSelected] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [studentStats, setStudentStats] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [roundsOpen, setRoundsOpen] = useState(false);
+  const [selectedClassName, setSelectedClassName] = useState("");
+  const [selectedBatchYear, setSelectedBatchYear] = useState("");
+  const [rankings, setRankings] = useState([]);
+  const [loadingRankings, setLoadingRankings] = useState(false);
+  const [distinctBatchYears, setDistinctBatchYears] = useState([]);
+  const [distinctClassNames, setDistinctClassNames] = useState([]);
 
-  useEffect(() => { 
-    const fetchStaffs = async () => { 
-      try { 
-        const res = await api.get("/staffs"); 
-        setStaffs(res.data); 
-      } catch (err) { 
-        console.error("Error fetching staffs:", err); 
-      } 
-    }; 
-    fetchStaffs(); 
-  }, []); 
+  // Rankings fetch
+  useEffect(() => {
+    const loadRankings = async () => {
+      if (!roundsOpen || !selectedClassName || !selectedBatchYear) {
+        setRankings([]);
+        return;
+      }
+      try {
+        setLoadingRankings(true);
+        const match = staffs.find(
+          (s) =>
+            s.className === selectedClassName &&
+            String(s.batchYear) === String(selectedBatchYear)
+        );
+        if (!match) {
+          setRankings([]);
+          return;
+        }
+        const res = await api.get(`/report/${match._id}`);
+        const students = res.data || [];
+        const rows = students
+          .map((student) => {
+            let easy = 0,
+              medium = 0,
+              hard = 0,
+              total = 0;
+            if (student.statsHistory && student.statsHistory.length > 0) {
+              const last = student.statsHistory[student.statsHistory.length - 1];
+              easy = last.easy;
+              medium = last.medium;
+              hard = last.hard;
+              total = last.total;
+            }
+            return {
+              rollNo: student.rollNo,
+              name: student.name,
+              leetcodeLink: student.leetcodeLink || "-",
+              easy,
+              medium,
+              hard,
+              total,
+            };
+          })
+          .sort((a, b) => b.total - a.total)
+          .map((row, idx) => ({ ...row, rank: idx + 1 }));
+        setRankings(rows);
+      } catch (err) {
+        console.error("Error loading rankings:", err);
+        setRankings([]);
+      } finally {
+        setLoadingRankings(false);
+      }
+    };
+    loadRankings();
+  }, [roundsOpen, selectedClassName, selectedBatchYear, staffs]);
 
-  const handleSelectChange = (e) => { 
-    const staffId = e.target.value; 
-    setSelected(staffId); 
-    const staff = staffs.find((s) => s._id === staffId); 
-    setSelectedStaff(staff || null); 
-  }; 
+  // Reset class when batch changes
+  useEffect(() => {
+    setSelectedClassName("");
+  }, [selectedBatchYear]);
 
-  const fetchStudentStats = async () => { 
-    if (!selectedStaff) return; 
-    setLoading(true); 
-    try { 
-      const res = await api.get(`/report/${selectedStaff._id}`); 
-      const students = res.data; 
-      const stats = students.map((student, index) => { 
-        let prev = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" }; 
-        let curr = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" }; 
-        if (student.statsHistory.length > 0) { 
-          const history = student.statsHistory; 
-          if (history.length === 1) { 
-            curr = { 
-              easy: history[0].easy, 
-              medium: history[0].medium, 
-              hard: history[0].hard, 
-              total: history[0].total, 
-              date: new Date(history[0].date).toLocaleDateString(), 
-            }; 
-          } else if (history.length >= 2) { 
-            prev = { 
-              easy: history[history.length - 2].easy, 
-              medium: history[history.length - 2].medium, 
-              hard: history[history.length - 2].hard, 
-              total: history[history.length - 2].total, 
-              date: new Date(history[history.length - 2].date).toLocaleDateString(), 
-            }; 
-            curr = { 
-              easy: history[history.length - 1].easy, 
-              medium: history[history.length - 1].medium, 
-              hard: history[history.length - 1].hard, 
-              total: history[history.length - 1].total, 
-              date: new Date(history[history.length - 1].date).toLocaleDateString(), 
-            }; 
-          } 
-        } 
-        return { 
-          sNo: index + 1, 
-          rollNo: student.rollNo, 
-          registerNo: student.registerNo, 
-          name: student.name, 
-          leetcodeLink: student.leetcodeLink || "-", 
-          prev, 
-          curr, 
-          improvement: prev.total !== "-" ? curr.total - prev.total : "-", 
-        }; 
-      }); 
-      setStudentStats(stats); 
-      setPopupOpen(true); 
-    } catch (err) { 
-      console.error("Error fetching stats:", err); 
-      alert("Failed to fetch student stats"); 
-    } finally { 
-      setLoading(false); 
-    } 
-  }; 
+  // Staffs fetch
+  useEffect(() => {
+    const fetchStaffs = async () => {
+      try {
+        const res = await api.get("/staffs");
+        setStaffs(res.data);
+      } catch (err) {
+        console.error("Error fetching staffs:", err);
+      }
+    };
+    fetchStaffs();
+  }, []);
 
-  const handleDownload = () => { 
-    if (!selectedStaff || studentStats.length === 0) return; 
-    const prevDate = studentStats[0]?.prev.date || "-"; 
-    const currDate = studentStats[0]?.curr.date || "-"; 
-    const header1 = [ 
-      "S.No.", 
-      "Roll No.", 
-      "Register No.", 
-      "Name", 
-      "LeetCode Link", 
-      `Previous Report (${prevDate})`, "", "", "", 
-      `Current Report (${currDate})`, "", "", "", 
-      "Improvement", 
-    ]; 
-    const header2 = [ 
-      "", "", "", "", "", 
-      "Easy", "Medium", "Hard", "Total", 
-      "Easy", "Medium", "Hard", "Total", 
-      "", 
-    ]; 
-    const sheetData = [ 
-      header1, 
-      header2, 
-      ...studentStats.map((s) => [ 
-        s.sNo, s.rollNo, s.registerNo, s.name, s.leetcodeLink, 
-        s.prev.easy, s.prev.medium, s.prev.hard, s.prev.total, 
-        s.curr.easy, s.curr.medium, s.curr.hard, s.curr.total, 
-        s.improvement, 
-      ]), 
-    ]; 
-    for (let i = 0; i < 5; i++) { sheetData.push([]); } 
-    const signatureRowIndex = sheetData.length; 
-    sheetData.push([ 
-      "", "Placement Coordinator Signature", "", "", 
-      "Head of the Department Signature", "" 
-    ]); 
-    const worksheet = XLSX.utils.aoa_to_sheet(sheetData); 
-    worksheet["!merges"] = [ 
-      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } }, 
-      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } }, 
-      { s: { r: signatureRowIndex, c: 1 }, e: { r: signatureRowIndex, c: 3 } }, 
-      { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } }, 
-    ]; 
-    worksheet["!cols"] = Array(header2.length).fill({ wch: 18 }); 
-    const workbook = XLSX.utils.book_new(); 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats"); 
-    const date = new Date().toISOString().split("T")[0]; 
-    const fileName = `${selectedStaff.batchYear}-CSE-${selectedStaff.className}-${date}.xlsx`; 
-    XLSX.writeFile(workbook, fileName); 
-  }; 
+  // Distinct batch years and class names fetch
+  useEffect(() => {
+    const fetchDistinct = async () => {
+      try {
+        const res = await api.get("/staffs/distinct");
+        setDistinctBatchYears(res.data?.batchYears || []);
+        setDistinctClassNames(res.data?.classNames || []);
+      } catch (err) {
+        console.error("Error fetching distinct staff values:", err);
+      }
+    };
+    fetchDistinct();
+  }, []);
+
+  // Staff selection
+  const handleSelectChange = (e) => {
+    const staffId = e.target.value;
+    setSelected(staffId);
+    const staff = staffs.find((s) => s._id === staffId);
+    setSelectedStaff(staff || null);
+  };
+
+  // Student stats fetch
+  const fetchStudentStats = async () => {
+    if (!selectedStaff) return;
+    setLoading(true);
+    try {
+      const res = await api.get(`/report/${selectedStaff._id}`);
+      const students = res.data;
+      const stats = students.map((student, index) => {
+        let prev = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
+        let curr = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
+        if (student.statsHistory && student.statsHistory.length > 0) {
+          const history = student.statsHistory;
+          if (history.length === 1) {
+            curr = {
+              easy: history[0].easy,
+              medium: history[0].medium,
+              hard: history[0].hard,
+              total: history[0].total,
+              date: new Date(history[0].date).toLocaleDateString(),
+            };
+          } else if (history.length >= 2) {
+            prev = {
+              easy: history[history.length - 2].easy,
+              medium: history[history.length - 2].medium,
+              hard: history[history.length - 2].hard,
+              total: history[history.length - 2].total,
+              date: new Date(
+                history[history.length - 2].date
+              ).toLocaleDateString(),
+            };
+            curr = {
+              easy: history[history.length - 1].easy,
+              medium: history[history.length - 1].medium,
+              hard: history[history.length - 1].hard,
+              total: history[history.length - 1].total,
+              date: new Date(
+                history[history.length - 1].date
+              ).toLocaleDateString(),
+            };
+          }
+        }
+        return {
+          sNo: index + 1,
+          rollNo: student.rollNo,
+          registerNo: student.registerNo,
+          name: student.name,
+          leetcodeLink: student.leetcodeLink || "-",
+          prev,
+          curr,
+          improvement: prev.total !== "-" ? curr.total - prev.total : "-",
+        };
+      });
+      setStudentStats(stats);
+      setPopupOpen(true);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      alert("Failed to fetch student stats");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Download Excel
+  const handleDownload = () => {
+    if (!selectedStaff || studentStats.length === 0) return;
+    const prevDate = studentStats[0]?.prev.date || "-";
+    const currDate = studentStats[0]?.curr.date || "-";
+    const header1 = [
+      "S.No.",
+      "Roll No.",
+      "Register No.",
+      "Name",
+      "LeetCode Link",
+      `Previous Report (${prevDate})`,
+      "",
+      "",
+      "",
+      `Current Report (${currDate})`,
+      "",
+      "",
+      "",
+      "Improvement",
+    ];
+    const header2 = [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Easy",
+      "Medium",
+      "Hard",
+      "Total",
+      "Easy",
+      "Medium",
+      "Hard",
+      "Total",
+      "",
+    ];
+    const sheetData = [
+      header1,
+      header2,
+      ...studentStats.map((s) => [
+        s.sNo,
+        s.rollNo,
+        s.registerNo,
+        s.name,
+        s.leetcodeLink,
+        s.prev.easy,
+        s.prev.medium,
+        s.prev.hard,
+        s.prev.total,
+        s.curr.easy,
+        s.curr.medium,
+        s.curr.hard,
+        s.curr.total,
+        s.improvement,
+      ]),
+    ];
+    for (let i = 0; i < 5; i++) sheetData.push([]);
+    const signatureRowIndex = sheetData.length;
+    sheetData.push([
+      "",
+      "Placement Coordinator Signature",
+      "",
+      "",
+      "Head of the Department Signature",
+      "",
+    ]);
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+    worksheet["!merges"] = [
+      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },
+      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
+      { s: { r: signatureRowIndex, c: 1 }, e: { r: signatureRowIndex, c: 3 } },
+      { s: { r: signatureRowIndex, c: 4 }, e: { r: signatureRowIndex, c: 6 } },
+    ];
+    worksheet["!cols"] = Array(header2.length).fill({ wch: 18 });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats");
+    const date = new Date().toISOString().split("T")[0];
+    const fileName = `${selectedStaff.batchYear}-CSE-${selectedStaff.className}-${date}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
 
   return ( 
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col p-6"> 
@@ -150,37 +271,91 @@ export default function App() {
         <img src="/cse-logo.jpg" alt="CSE Logo" className="h-16 w-auto object-contain" /> 
       </header> 
       <div className="flex-1 flex items-center justify-center"> 
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="w-full max-w-xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-2xl p-8 sm:p-10 flex flex-col items-center justify-center" > 
+        <Motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="w-full max-w-xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-2xl p-8 sm:p-10 flex flex-col items-center justify-center" > 
           <h2 className="text-4xl font-extrabold mb-8 text-center text-gray-900 tracking-tight"> LeetCode Stats Report </h2> 
           <form className="space-y-6 w-full flex flex-col items-center"> 
             <label className="block w-full"> 
               <span className="text-base font-semibold text-gray-700"> Select Class In-Charge </span> 
               <div className="relative mt-2 w-full"> 
-                <select className="appearance-none w-full rounded-[28px] border-2 border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-black transition-all px-6 py-4 text-lg shadow-md hover:shadow-lg pr-12" value={selected} onChange={handleSelectChange} > 
-                  <option value="">-- Choose --</option> 
-                  {staffs.map((staff) => ( <option key={staff._id} value={staff._id}> {staff.name} ({staff.className} - {staff.batchYear}) </option> ))} 
-                </select> 
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4"> 
-                  <svg className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24"> <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> </svg> 
-                </div> 
-              </div> 
+                <select 
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-4 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                  value={selected} 
+                  onChange={handleSelectChange}
+                  style={{
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    backgroundColor: '#fff',
+                    backgroundImage: 'linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%)',
+                  }}
+                  data-te-select-init
+                > 
+                  <option value="" 
+                    className="text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 hover:bg-gray-100/80" 
+                    style={{ 
+                      padding: '12px 16px', 
+                      borderBottom: '1px solid #e5e7eb'
+                    }}
+                  >
+                    -- Choose --
+                  </option> 
+                  {[...staffs]
+                    .sort((a, b) => {
+                      const yearDiff = a.batchYear - b.batchYear;
+                      if (yearDiff !== 0) return yearDiff;
+                      if (a.className < b.className) return -1;
+                      if (a.className > b.className) return 1;
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((staff) => (
+                      <option 
+                        key={staff._id} 
+                        value={staff._id}
+                        className="text-sm text-gray-900 hover:bg-gray-100 transition-all duration-150"
+                        style={{
+                          backgroundColor: 'white',
+                          padding: '12px 20px',
+                          borderBottom: '1px solid #edf2f7',
+                          cursor: 'pointer',
+                          fontWeight: '500',
+                          outline: 'none'
+                        }}
+                      >
+                        {staff.name} ({staff.className} - {staff.batchYear})
+                      </option>
+                    ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6"> 
+                  <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
             </label> 
-            {selectedStaff && ( <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4" > 
+            {selectedStaff && ( <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4" > 
               <h3 className="font-semibold text-blue-900 mb-2"> Selected Staff: </h3> 
               <div className="text-sm text-blue-800"> 
                 <p> <strong>Name:</strong> {selectedStaff.name} </p> 
                 <p> <strong>Class:</strong> {selectedStaff.className} </p> 
                 <p> <strong>Batch Year:</strong> {selectedStaff.batchYear} </p> 
               </div> 
-            </motion.div> )} 
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} type="button" disabled={!selected || loading} onClick={fetchStudentStats} className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300" > 
+            </Motion.div> )} 
+            <Motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} type="button" disabled={!selected || loading} onClick={fetchStudentStats} className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300" > 
               {loading ? ( <div className="flex items-center justify-center space-x-2"> <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" > <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" ></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" ></path> </svg> <span>Generating...</span> </div> ) : ( <span>Next</span> )} 
-            </motion.button> 
+            </Motion.button> 
+            <Motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} type="button" onClick={() => setRoundsOpen(true)} className="w-full sm:w-1/2 mx-auto mt-3 flex items-center justify-center gap-2 rounded-[28px] bg-blue-600 text-white py-4 font-semibold hover:bg-blue-700 shadow-md transition-all duration-300" > 
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <rect x="3" y="3" width="8" height="8" rx="2" ry="2"></rect>
+                <rect x="13" y="3" width="8" height="8" rx="2" ry="2"></rect>
+                <rect x="3" y="13" width="8" height="8" rx="2" ry="2"></rect>
+                <rect x="13" y="13" width="8" height="8" rx="2" ry="2"></rect>
+              </svg>
+              <span>View Rankings</span>
+            </Motion.button>
           </form> 
-        </motion.div> 
+        </Motion.div> 
       </div> 
       {popupOpen && ( <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"> 
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" > 
+        <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" > 
           <div className="flex justify-between items-center mb-4"> 
             <h2 className="text-2xl font-bold">Students</h2> 
             <div className="flex items-center gap-2"> 
@@ -190,52 +365,170 @@ export default function App() {
               <button onClick={() => setPopupOpen(false)} className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1" > × </button> 
             </div> 
           </div> 
-          <div className="overflow-x-auto max-h-[500px]"> 
-            <table className="w-full border-collapse text-sm text-gray-900"> 
+                    <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg">
+            <table className="min-w-full">
               <thead className="bg-gray-100 sticky top-0"> 
                 <tr> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > S.No. </th> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > Roll No. </th> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > Register No. </th> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > Name </th> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > LeetCode Link </th> 
-                  <th colSpan="4" className="border px-2 py-2 text-center font-semibold" > Previous Report ({studentStats[0]?.prev.date || "-"}) </th> 
-                  <th colSpan="4" className="border px-2 py-2 text-center font-semibold" > Current Report ({studentStats[0]?.curr.date || "-"}) </th> 
-                  <th rowSpan="2" className="border px-2 py-2 text-center font-semibold" > Improvement </th> 
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">S.No.</th> 
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Roll No.</th> 
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Register No.</th> 
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Name</th>
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">LeetCode</th>
+                  <th colSpan="4" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
+                  <th colSpan="4" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200">Current Report ({studentStats[0]?.curr.date || "-"})</th>
+                  <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Improvement</th> 
                 </tr> 
-                <tr> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Easy </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Medium </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Hard </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Total </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Easy </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Medium </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Hard </th> 
-                  <th className="border px-2 py-2 text-center font-semibold"> Total </th> 
+                <tr className="bg-gray-50/80">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th> 
                 </tr> 
               </thead> 
               <tbody> 
-                {studentStats.map((s) => ( <tr key={s.rollNo} className="border-b hover:bg-gray-50"> 
-                  <td className="border px-2 py-1 text-center">{s.sNo}</td> 
-                  <td className="border px-2 py-1 text-center"> {s.rollNo} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.registerNo} </td> 
-                  <td className="border px-2 py-1">{s.name}</td> 
-                  <td className="border px-2 py-1 text-center"> {s.leetcodeLink !== "-" ? ( <a href={s.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline" > Link </a> ) : ( "-" )} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.prev.easy} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.prev.medium} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.prev.hard} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.prev.total} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.curr.easy} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.curr.medium} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.curr.hard} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.curr.total} </td> 
-                  <td className="border px-2 py-1 text-center"> {s.improvement} </td> 
+                {studentStats.map((s) => ( 
+                  <tr key={s.rollNo} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0"> 
+                    <td className="px-6 py-3.5 text-sm text-gray-900">{s.sNo}</td> 
+                    <td className="px-6 py-3.5 text-sm text-gray-900">{s.rollNo}</td> 
+                    <td className="px-6 py-3.5 text-sm text-gray-600">{s.registerNo}</td> 
+                    <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{s.name}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center">
+                      {s.leetcodeLink !== "-" ? (
+                        <a href={s.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                          Link
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.easy}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.medium}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.hard}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.prev.total}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.easy}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.medium}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.hard}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.curr.total}</td> 
+                    <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.improvement}</td>
                 </tr> ))} 
               </tbody> 
             </table> 
           </div> 
-        </motion.div> 
+        </Motion.div> 
       </div> )} 
+      {roundsOpen && ( 
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"> 
+          <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" > 
+            <div className="flex justify-between items-center"> 
+              <h2 className="text-2xl font-bold">View Rounds</h2> 
+              <button onClick={() => setRoundsOpen(false)} className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1">×</button> 
+            </div> 
+            <div className="mt-3 border-t border-gray-200" /> 
+            <div className="mt-6"> 
+              <div className="flex gap-4"> 
+                <label className="block w-1/2"> 
+                  <span className="text-sm font-semibold text-gray-700">Select Batch Year</span> 
+                  <div className="relative mt-2 w-full"> 
+                    <select 
+                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer" 
+                      value={selectedBatchYear} 
+                      onChange={(e) => setSelectedBatchYear(e.target.value)} 
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }} 
+                    > 
+                      <option value="">-- Choose Batch Year --</option> 
+                      {[...distinctBatchYears]
+                        .filter(Boolean)
+                        .sort((a,b) => a - b)
+                        .map((yr) => (
+                          <option key={yr} value={yr}>{yr}</option>
+                        ))}
+                    </select> 
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6"> 
+                      <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"> 
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/> 
+                      </svg> 
+                    </div> 
+                  </div> 
+                </label> 
+                <label className="block w-1/2"> 
+                  <span className="text-sm font-semibold text-gray-700">Select Class</span> 
+                  <div className="relative mt-2 w-full"> 
+                    <select 
+                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer" 
+                      value={selectedClassName} 
+                      onChange={(e) => setSelectedClassName(e.target.value)} 
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }} 
+                    > 
+                      <option value="">-- Choose Class --</option> 
+                      {[...distinctClassNames]
+                        .filter(Boolean)
+                        .sort()
+                        .map((cls) => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                    </select> 
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6"> 
+                      <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"> 
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/> 
+                      </svg> 
+                    </div> 
+                  </div> 
+                </label> 
+              </div> 
+              <div className="mt-6"> 
+                <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg"> 
+                  <table className="min-w-full"> 
+                    <thead className="bg-gray-100 sticky top-0"> 
+                      <tr> 
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rank</th> 
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Roll No.</th> 
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th> 
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">LeetCode</th> 
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th> 
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th> 
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th> 
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th> 
+                      </tr> 
+                    </thead> 
+                    <tbody> 
+                      {loadingRankings ? ( 
+                        <tr><td className="px-6 py-4 text-sm text-gray-600" colSpan="8">Loading...</td></tr> 
+                      ) : rankings.length === 0 ? ( 
+                        <tr><td className="px-6 py-4 text-sm text-gray-600" colSpan="8">Select class and batch year to view rankings.</td></tr> 
+                      ) : ( 
+                        rankings.map((r) => ( 
+                          <tr key={`${r.rollNo}-${r.rank}`} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0"> 
+                            <td className="px-6 py-3.5 text-sm text-gray-900">{r.rank}</td> 
+                            <td className="px-6 py-3.5 text-sm text-gray-900">{r.rollNo}</td> 
+                            <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{r.name}</td> 
+                            <td className="px-6 py-3.5 text-sm text-center"> 
+                              {r.leetcodeLink !== "-" ? ( 
+                                <a href={r.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium"> 
+                                  Link 
+                                </a> 
+                              ) : ( 
+                                "-" 
+                              )} 
+                            </td> 
+                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.easy}</td> 
+                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.medium}</td> 
+                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.hard}</td> 
+                            <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{r.total}</td> 
+                          </tr> 
+                        )) 
+                      )} 
+                    </tbody> 
+                  </table> 
+                </div> 
+              </div> 
+            </div> 
+          </Motion.div> 
+        </div> 
+      )} 
     </div> 
   ); 
 }
