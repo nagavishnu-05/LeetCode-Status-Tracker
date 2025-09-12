@@ -442,7 +442,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"> 
           <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" > 
             <div className="flex justify-between items-center"> 
-              <h2 className="text-2xl font-bold">View Rounds</h2> 
+              <h2 className="text-2xl font-bold">View Rankings</h2> 
               <button onClick={() => setRoundsOpen(false)} className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1">×</button> 
             </div> 
             <div className="mt-3 border-t border-gray-200" /> 
