@@ -147,8 +147,10 @@ export default function App() {
   // Verify and fetch student stats
   const fetchStudentStats = async () => {
     const passwords = {
+      "Mr. G. Vinoth Chakkaravarthy" : "CSE0907",
       "Mr. G. BalamuraliKrishnan": "CSE2264",
-      "Mrs. A. Benazir Begum": "CSE2482"
+      "Mrs. A. Benazir Begum": "CSE2482",
+      "Mrs. R. Pavithra" : "CSE2478"
     };
     if (passwords[selectedVerifier] === verifierPassword) {
       setVerificationOpen(false);
