@@ -412,8 +412,10 @@ export default function App() {
                   required
                 >
                   <option value="">-- Select Staff --</option>
+                  <option value="Mr. G. Vinoth Chakkaravarthy">Mr. G. Vinoth Chakkaravarthy</option>
                   <option value="Mr. G. BalamuraliKrishnan">Mr. G. BalamuraliKrishnan</option>
                   <option value="Mrs. A. Benazir Begum">Mrs. A. Benazir Begum</option>
+                  <option value="Mrs. R. Pavithra">Mrs. R. Pavithra</option>
                 </select>
               </label>
               <label className="block">
