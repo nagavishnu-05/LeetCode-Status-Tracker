@@ -1,19 +1,24 @@
 import express from "express";
 import axios from "axios";
-import Staff from "../models/Staff.js";
-import Student from "../models/Student.js";
+import { getStudentModel } from "../models/Student.js";
 
 const router = express.Router();
 
-// Fetch all students for a staff with updated stats
-router.get("/:staffId", async (req, res) => {
+// Fetch all students for a batch/class with updated stats
+router.get("/:batchYear/:className", async (req, res) => {
   try {
-    const staff = await Staff.findById(req.params.staffId);
-    if (!staff) return res.status(404).json({ message: "Staff not found" });
+    const { batchYear, className } = req.params;
+
+    // Validate className
+    if (!["A", "B", "C", "D"].includes(className)) {
+      return res.status(400).json({ message: "Invalid className" });
+    }
+
+    // Get the model for this batch year
+    const Student = getStudentModel(Number(batchYear));
 
     const students = await Student.find({
-      className: staff.className,
-      batchYear: staff.batchYear,
+      className: className,
     }).sort({ rollNo: 1 });
 
     await Promise.all(

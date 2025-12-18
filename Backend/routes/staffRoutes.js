@@ -1,6 +1,6 @@
 import express from "express";
 import Staff from "../models/Staff.js";
-import Student from "../models/Student.js";
+import { getStudentModel } from "../models/Student.js";
 
 const router = express.Router();
 
@@ -21,9 +21,11 @@ router.get("/:staffId/students", async (req, res) => {
     const staff = await Staff.findOne({ name: req.params.staffId });
     if (!staff) return res.status(404).json({ message: "Staff not found" });
 
+    // Get the model for this batch year
+    const Student = getStudentModel(staff.batchYear);
+
     const students = await Student.find({
       className: staff.className,
-      batchYear: staff.batchYear,
     }).sort({ rollNo: 1 });
 
     res.json(students);

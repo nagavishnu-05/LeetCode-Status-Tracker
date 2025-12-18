@@ -1,5 +1,5 @@
 import express from "express";
-import Student from "../models/Student.js";
+import { getStudentModel } from "../models/Student.js";
 
 const router = express.Router();
 
@@ -7,13 +7,15 @@ const router = express.Router();
 router.get("/:className/:batchYear", async (req, res) => {
   try {
     const { className, batchYear } = req.params;
-    if (!["A", "B", "C"].includes(className)) {
+    if (!["A", "B", "C", "D"].includes(className)) {
       return res.status(400).json({ message: "Invalid className" });
     }
 
+    // Get the model for this batch year
+    const Student = getStudentModel(Number(batchYear));
+
     const students = await Student.find({
       className,
-      batchYear: Number(batchYear),
     }).sort({ rollNo: 1 });
 
     res.json(students);
