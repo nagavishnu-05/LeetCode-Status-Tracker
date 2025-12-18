@@ -20,6 +20,13 @@ export default function App() {
   const [classOptions, setClassOptions] = useState([]);
   const [reportClassOptions, setReportClassOptions] = useState([]);
 
+  // Verification State
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [selectedVerifier, setSelectedVerifier] = useState("");
+  const [verifierPassword, setVerifierPassword] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
+
 
   // Rankings fetch
   useEffect(() => {
@@ -137,6 +144,13 @@ export default function App() {
       alert("Please select both batch year and section");
       return;
     }
+
+    // Check verification
+    if (!isVerified) {
+      setVerificationOpen(true);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.get(`/report/${reportBatchYear}/${reportClassName}`);
@@ -195,6 +209,93 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  // Handle Verification
+  const handleVerification = (e) => {
+    e.preventDefault();
+    const passwords = {
+      "Mr. G. Vinoth Chakkaravarthy": "CSE0907",
+      "Mr. G. BalamuraliKrishnan": "CSE2264",
+      "Mrs. A. Benazir Begum": "CSE2482",
+      "Mrs. R. Pavithra": "CSE2478",
+    };
+
+    if (passwords[selectedVerifier] === verifierPassword) {
+      setVerificationOpen(false);
+      setVerificationError("");
+      setSelectedVerifier("");
+      setVerifierPassword("");
+      setIsVerified(true);
+      // Automatically fetch stats after successful verification
+      // We need to call fetchStudentStats but bypass the check we just added.
+      // Actually, since we set isVerified to true, calling fetchStudentStats() again will work,
+      // BUT setState is async. So we should extract the core fetch logic or use a timeout.
+      // Better: Extract core fetch logic.
+      fetchStudentStatsCore();
+    } else {
+      setVerificationError("Invalid credentials");
+    }
+  };
+
+  const fetchStudentStatsCore = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/report/${reportBatchYear}/${reportClassName}`);
+      const students = res.data;
+      const stats = students.map((student, index) => {
+        let prev = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
+        let curr = { easy: "-", medium: "-", hard: "-", total: "-", date: "-" };
+        if (student.statsHistory && student.statsHistory.length > 0) {
+          const history = student.statsHistory;
+          if (history.length === 1) {
+            curr = {
+              easy: history[0].easy,
+              medium: history[0].medium,
+              hard: history[0].hard,
+              total: history[0].total,
+              date: new Date(history[0].date).toLocaleDateString(),
+            };
+          } else if (history.length >= 2) {
+            prev = {
+              easy: history[history.length - 2].easy,
+              medium: history[history.length - 2].medium,
+              hard: history[history.length - 2].hard,
+              total: history[history.length - 2].total,
+              date: new Date(
+                history[history.length - 2].date
+              ).toLocaleDateString(),
+            };
+            curr = {
+              easy: history[history.length - 1].easy,
+              medium: history[history.length - 1].medium,
+              hard: history[history.length - 1].hard,
+              total: history[history.length - 1].total,
+              date: new Date(
+                history[history.length - 1].date
+              ).toLocaleDateString(),
+            };
+          }
+        }
+        return {
+          sNo: index + 1,
+          rollNo: student.rollNo,
+          registerNo: student.registerNo,
+          name: student.name,
+          leetcodeLink: student.leetcodeLink || "-",
+          prev,
+          curr,
+          improvement: prev.total !== "-" ? curr.total - prev.total : "-",
+        };
+      });
+      setStudentStats(stats);
+      setPopupOpen(true);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      alert("Failed to fetch student stats");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Download Excel
   const handleDownload = () => {
@@ -389,6 +490,68 @@ export default function App() {
           </form>
         </Motion.div>
       </div>
+
+      {verificationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <Motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Staff Verification</h2>
+              <button
+                onClick={() => {
+                  setVerificationOpen(false);
+                  setVerificationError("");
+                  setSelectedVerifier("");
+                  setVerifierPassword("");
+                }}
+                className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleVerification} className="space-y-4">
+              <label className="block">
+                <span className="text-base font-semibold text-gray-700">Staff Name</span>
+                <select
+                  className="w-full mt-2 rounded-lg border border-gray-200 bg-white text-gray-800 pl-4 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm"
+                  value={selectedVerifier}
+                  onChange={(e) => setSelectedVerifier(e.target.value)}
+                  required
+                >
+                  <option value="">-- Select Staff --</option>
+                  <option value="Mr. G. Vinoth Chakkaravarthy">Mr. G. Vinoth Chakkaravarthy</option>
+                  <option value="Mr. G. BalamuraliKrishnan">Mr. G. BalamuraliKrishnan</option>
+                  <option value="Mrs. A. Benazir Begum">Mrs. A. Benazir Begum</option>
+                  <option value="Mrs. R. Pavithra">Mrs. R. Pavithra</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-base font-semibold text-gray-700">Password</span>
+                <input
+                  type="password"
+                  className="w-full mt-2 rounded-lg border border-gray-200 bg-white text-gray-800 pl-4 pr-4 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm"
+                  value={verifierPassword}
+                  onChange={(e) => setVerifierPassword(e.target.value)}
+                  required
+                />
+              </label>
+              {verificationError && (
+                <p className="text-red-600 text-sm">{verificationError}</p>
+              )}
+              <button
+                type="submit"
+                className="w-full rounded-[28px] bg-black text-white py-3 font-semibold hover:bg-gray-900 shadow-md transition-all duration-300"
+              >
+                Verify and Generate Report
+              </button>
+            </form>
+          </Motion.div>
+        </div>
+      )}
 
       {popupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
