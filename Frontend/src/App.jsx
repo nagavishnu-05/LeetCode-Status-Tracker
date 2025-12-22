@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion as Motion } from "framer-motion";
-import { Download } from "lucide-react";
+import { Download, Calendar, Users, ShieldCheck, Trophy, FileText, X, LayoutGrid } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "./api";
+import MonthlyReportModal from "./components/MonthlyReportModal";
+import StaffVerificationModal from "./components/StaffVerificationModal";
 import './select.css';
 
 export default function App() {
@@ -10,6 +12,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
   const [roundsOpen, setRoundsOpen] = useState(false);
+  const [monthlyReportOpen, setMonthlyReportOpen] = useState(false);
   const [selectedClassName, setSelectedClassName] = useState("");
   const [selectedBatchYear, setSelectedBatchYear] = useState("");
   const [reportBatchYear, setReportBatchYear] = useState("");
@@ -22,8 +25,6 @@ export default function App() {
 
   // Verification State
   const [verificationOpen, setVerificationOpen] = useState(false);
-  const [selectedVerifier, setSelectedVerifier] = useState("");
-  const [verifierPassword, setVerifierPassword] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [isVerified, setIsVerified] = useState(false);
 
@@ -211,8 +212,7 @@ export default function App() {
   };
 
   // Handle Verification
-  const handleVerification = (e) => {
-    e.preventDefault();
+  const handleVerification = (selectedVerifier, verifierPassword) => {
     const passwords = {
       "Mr. G. Vinoth Chakkaravarthy": "CSE0907",
       "Mr. G. BalamuraliKrishnan": "CSE2264",
@@ -223,15 +223,11 @@ export default function App() {
     if (passwords[selectedVerifier] === verifierPassword) {
       setVerificationOpen(false);
       setVerificationError("");
-      setSelectedVerifier("");
-      setVerifierPassword("");
       setIsVerified(true);
       // Automatically fetch stats after successful verification
-      // We need to call fetchStudentStats but bypass the check we just added.
-      // Actually, since we set isVerified to true, calling fetchStudentStats() again will work,
-      // BUT setState is async. So we should extract the core fetch logic or use a timeout.
-      // Better: Extract core fetch logic.
-      fetchStudentStatsCore();
+      if (reportBatchYear && reportClassName) {
+        fetchStudentStatsCore();
+      }
     } else {
       setVerificationError("Invalid credentials");
     }
@@ -390,342 +386,386 @@ export default function App() {
         <img src="/cse-logo.jpg" alt="CSE Logo" className="h-16 w-auto object-contain" />
       </header>
       <div className="flex-1 flex items-center justify-center">
-        <Motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="w-full max-w-xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-2xl p-8 sm:p-10 flex flex-col items-center justify-center" >
-          <h2 className="text-4xl font-extrabold mb-8 text-center text-gray-900 tracking-tight"> LeetCode Stats Report </h2>
-          <form className="space-y-6 w-full flex flex-col items-center">
-            <label className="block w-full">
-              <span className="text-base font-semibold text-gray-700">Select Batch Year</span>
-              <div className="relative mt-2 w-full">
-                <select
-                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-4 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
-                  value={reportBatchYear}
-                  onChange={(e) => setReportBatchYear(e.target.value)}
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    backgroundColor: '#fff',
-                    backgroundImage: 'linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%)',
-                  }}
-                >
-                  <option value="">-- Choose Batch Year --</option>
-                  {[...distinctBatchYears]
-                    .filter(Boolean)
-                    .sort((a, b) => a - b)
-                    .map((yr) => (
-                      <option key={yr} value={yr}>{yr}</option>
-                    ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
-                  <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </label>
+        <Motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="w-full max-w-xl bg-white border border-gray-100 rounded-3xl shadow-2xl p-8 sm:p-10 flex flex-col items-center justify-center"
+        >
+          <div className="flex items-center gap-4 mb-8">
+            <div className="bg-black p-1.5 rounded-2xl">
+              <img
+                src="/src/assets/LeetCode Logo.png"
+                alt="LeetCode Logo"
+                className="w-10 h-10 object-contain"
+              />
+            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight"> LeetCode Stats Report </h2>
+          </div>
 
-            <label className="block w-full">
-              <span className="text-base font-semibold text-gray-700">Select Section</span>
-              <div className="relative mt-2 w-full">
-                <select
-                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-4 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
-                  value={reportClassName}
-                  onChange={(e) => setReportClassName(e.target.value)}
-                  disabled={!reportBatchYear}
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    backgroundColor: '#fff',
-                    backgroundImage: 'linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%)',
-                  }}
-                >
-                  <option value="">-- Choose Section --</option>
-                  {reportClassOptions.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
+          <form className="space-y-6 w-full flex flex-col items-center">
+            <div className="w-full relative group">
+              <label className="flex items-center text-sm font-bold text-gray-700 mb-2 ml-1">
+                <Calendar size={16} className="mr-2 text-blue-500" />
+                Batch Year
+              </label>
+              <select
+                className="w-full appearance-none rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
+                value={reportBatchYear}
+                onChange={(e) => setReportBatchYear(e.target.value)}
+              >
+                <option value="">Select Batch Year</option>
+                {[...distinctBatchYears]
+                  .filter(Boolean)
+                  .sort((a, b) => a - b)
+                  .map((yr) => (
+                    <option key={yr} value={yr}>{yr}</option>
                   ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
-                  <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-            </label>
+            </div>
+
+            <div className="w-full relative group">
+              <label className="flex items-center text-sm font-bold text-gray-700 mb-2 ml-1">
+                <Users size={16} className="mr-2 text-purple-500" />
+                Section
+              </label>
+              <select
+                className="w-full appearance-none rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                value={reportClassName}
+                onChange={(e) => setReportClassName(e.target.value)}
+                disabled={!reportBatchYear}
+              >
+                <option value="">Select Section</option>
+                {reportClassOptions.map((cls) => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
 
             <Motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
               disabled={!reportBatchYear || !reportClassName || loading}
               onClick={fetchStudentStats}
-              className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 rounded-[28px] bg-black text-white py-4 font-semibold hover:bg-gray-900 shadow-md disabled:opacity-50 transition-all duration-300"
+              className="w-full flex items-center justify-center gap-3 rounded-2xl bg-gray-900 text-white py-4 font-bold shadow-xl shadow-gray-900/20 disabled:opacity-50 transition-all duration-300 active:scale-95"
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                  </svg>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Generating...</span>
                 </div>
               ) : (
-                <span>Generate Report</span>
+                <>
+                  <FileText size={20} />
+                  <span>Generate Report</span>
+                </>
               )}
             </Motion.button>
 
-            <Motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              type="button"
-              onClick={() => setRoundsOpen(true)}
-              className="w-full sm:w-1/2 mx-auto mt-3 flex items-center justify-center gap-2 rounded-[28px] bg-blue-600 text-white py-4 font-semibold hover:bg-blue-700 shadow-md transition-all duration-300"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <rect x="3" y="3" width="8" height="8" rx="2" ry="2"></rect>
-                <rect x="13" y="3" width="8" height="8" rx="2" ry="2"></rect>
-                <rect x="3" y="13" width="8" height="8" rx="2" ry="2"></rect>
-                <rect x="13" y="13" width="8" height="8" rx="2" ry="2"></rect>
-              </svg>
-              <span>View Rankings</span>
-            </Motion.button>
+            <div className="grid grid-cols-2 gap-4 w-full">
+              <Motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setRoundsOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white py-4 text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all duration-300 active:scale-95"
+              >
+                <Trophy size={18} />
+                <span>View Rankings</span>
+              </Motion.button>
+
+              <Motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setMonthlyReportOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-purple-600 text-white py-4 text-sm font-bold hover:bg-purple-700 shadow-lg shadow-purple-600/20 transition-all duration-300 active:scale-95"
+              >
+                <Calendar size={18} />
+                <span>Monthly Report</span>
+              </Motion.button>
+            </div>
           </form>
         </Motion.div>
       </div>
 
-      {verificationOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <Motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Staff Verification</h2>
-              <button
-                onClick={() => {
-                  setVerificationOpen(false);
-                  setVerificationError("");
-                  setSelectedVerifier("");
-                  setVerifierPassword("");
-                }}
-                className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1"
-              >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleVerification} className="space-y-4">
-              <label className="block">
-                <span className="text-base font-semibold text-gray-700">Staff Name</span>
-                <select
-                  className="w-full mt-2 rounded-lg border border-gray-200 bg-white text-gray-800 pl-4 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm"
-                  value={selectedVerifier}
-                  onChange={(e) => setSelectedVerifier(e.target.value)}
-                  required
-                >
-                  <option value="">-- Select Staff --</option>
-                  <option value="Mr. G. Vinoth Chakkaravarthy">Mr. G. Vinoth Chakkaravarthy</option>
-                  <option value="Mr. G. BalamuraliKrishnan">Mr. G. BalamuraliKrishnan</option>
-                  <option value="Mrs. A. Benazir Begum">Mrs. A. Benazir Begum</option>
-                  <option value="Mrs. R. Pavithra">Mrs. R. Pavithra</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-base font-semibold text-gray-700">Password</span>
-                <input
-                  type="password"
-                  className="w-full mt-2 rounded-lg border border-gray-200 bg-white text-gray-800 pl-4 pr-4 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm"
-                  value={verifierPassword}
-                  onChange={(e) => setVerifierPassword(e.target.value)}
-                  required
-                />
-              </label>
-              {verificationError && (
-                <p className="text-red-600 text-sm">{verificationError}</p>
-              )}
-              <button
-                type="submit"
-                className="w-full rounded-[28px] bg-black text-white py-3 font-semibold hover:bg-gray-900 shadow-md transition-all duration-300"
-              >
-                Verify and Generate Report
-              </button>
-            </form>
-          </Motion.div>
-        </div>
-      )}
+      <StaffVerificationModal
+        isOpen={verificationOpen}
+        onClose={() => {
+          setVerificationOpen(false);
+          setVerificationError("");
+        }}
+        onVerify={handleVerification}
+        error={verificationError}
+        setError={setVerificationError}
+      />
 
       {popupOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Students</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={handleDownload} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full hover:bg-gray-900" >
-                  <Download className="h-5 w-5" /> Download Excel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-8">
+          <Motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-7xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-xl">
+                  <FileText size={24} className="text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Student Performance Report</h2>
+                  <p className="text-sm text-gray-500 font-medium">Detailed breakdown of LeetCode progress</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all active:scale-95"
+                >
+                  <Download size={18} /> Export to Excel
                 </button>
-                <button onClick={() => setPopupOpen(false)} className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1" > × </button>
+                <button
+                  onClick={() => setPopupOpen(false)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+                >
+                  <X size={24} />
+                </button>
               </div>
             </div>
-            <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg">
-              <table className="min-w-full">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">S.No.</th>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Roll No.</th>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Register No.</th>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Name</th>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">LeetCode</th>
-                    <th colSpan="4" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
-                    <th colSpan="4" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80 border-b border-gray-200">Current Report ({studentStats[0]?.curr.date || "-"})</th>
-                    <th rowSpan="2" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50/80">Improvement</th>
-                  </tr>
-                  <tr className="bg-gray-50/80">
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {studentStats.map((s) => (
-                    <tr key={s.rollNo} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0">
-                      <td className="px-6 py-3.5 text-sm text-gray-900">{s.sNo}</td>
-                      <td className="px-6 py-3.5 text-sm text-gray-900">{s.rollNo}</td>
-                      <td className="px-6 py-3.5 text-sm text-gray-600">{s.registerNo}</td>
-                      <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{s.name}</td>
-                      <td className="px-6 py-3.5 text-sm text-center">
-                        {s.leetcodeLink !== "-" ? (
-                          <a href={s.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                            Link
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.easy}</td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.medium}</td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.prev.hard}</td>
-                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.prev.total}</td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.easy}</td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.medium}</td>
-                      <td className="px-6 py-3.5 text-sm text-center text-gray-600">{s.curr.hard}</td>
-                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.curr.total}</td>
-                      <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{s.improvement}</td>
-                    </tr>))}
-                </tbody>
-              </table>
+
+            <div className="p-8 overflow-auto custom-scrollbar">
+              <div className="ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">S.No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Roll No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Register No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Name</th>
+                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">LeetCode</th>
+                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
+                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Current Report ({studentStats[0]?.curr.date || "-"})</th>
+                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest">Improvement</th>
+                    </tr>
+                    <tr className="bg-gray-50/50">
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Easy</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Med</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Hard</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-600 uppercase tracking-wider border-r border-gray-100 bg-gray-100/50">Total</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Easy</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Med</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Hard</th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-600 uppercase tracking-wider border-r border-gray-100 bg-gray-100/50">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {studentStats.map((s, idx) => (
+                      <tr key={s.rollNo} className="hover:bg-blue-50/30 transition-colors group">
+                        <td className="px-6 py-4 text-sm font-bold text-gray-400 border-r border-gray-50">{s.sNo}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-gray-900 border-r border-gray-50">{s.rollNo}</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-500 border-r border-gray-50">{s.registerNo}</td>
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-50">{s.name}</td>
+                        <td className="px-6 py-4 text-sm text-center border-r border-gray-50">
+                          {s.leetcodeLink !== "-" ? (
+                            <a href={s.leetcodeLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                              View <LayoutGrid size={14} />
+                            </a>
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.prev.easy}</td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.prev.medium}</td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.prev.hard}</td>
+                        <td className="px-4 py-4 text-sm text-center font-black text-gray-900 border-r border-gray-50 bg-gray-50/50">{s.prev.total}</td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.curr.easy}</td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.curr.medium}</td>
+                        <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.curr.hard}</td>
+                        <td className="px-4 py-4 text-sm text-center font-black text-gray-900 border-r border-gray-50 bg-gray-50/50">{s.curr.total}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${s.improvement > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                            }`}>
+                            {s.improvement > 0 ? `+${s.improvement}` : s.improvement}
+                          </span>
+                        </td>
+                      </tr>))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </Motion.div>
         </div>)}
       {roundsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 relative text-gray-900" >
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">View Rankings</h2>
-              <button onClick={() => setRoundsOpen(false)} className="text-gray-500 hover:text-gray-900 font-bold text-xl px-2 py-1">×</button>
-            </div>
-            <div className="mt-3 border-t border-gray-200" />
-            <div className="mt-6">
-              <div className="flex gap-4">
-                <label className="block w-1/2">
-                  <span className="text-sm font-semibold text-gray-700">Select Batch Year</span>
-                  <div className="relative mt-2 w-full">
-                    <select
-                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
-                      value={selectedBatchYear}
-                      onChange={(e) => setSelectedBatchYear(e.target.value)}
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }}
-                    >
-                      <option value="">-- Choose Batch Year --</option>
-                      <option value="all">All Batches</option>
-                      {[...distinctBatchYears]
-                        .filter(Boolean)
-                        .sort((a, b) => a - b)
-                        .map((yr) => (
-                          <option key={yr} value={yr}>{yr}</option>
-                        ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
-                      <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </label>
-                <label className="block w-1/2">
-                  <span className="text-sm font-semibold text-gray-700">Select Class</span>
-                  <div className="relative mt-2 w-full">
-                    <select
-                      className="w-full appearance-none rounded-lg border border-gray-200 bg-white text-gray-800 pl-6 pr-12 py-3 text-sm font-medium hover:border-gray-300 focus:border-gray-300 focus:ring-0 transition-all shadow-sm hover:shadow-md cursor-pointer"
-                      value={selectedClassName}
-                      onChange={(e) => setSelectedClassName(e.target.value)}
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', backgroundColor: '#fff' }}
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classOptions.map((cls) => (
-                        <option key={cls} value={cls === 'All Classes' ? 'all' : cls}>{cls}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
-                      <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </label>
-              </div>
-              <div className="mt-6">
-                <div className="overflow-x-auto max-h-[500px] ring-1 ring-gray-200 rounded-lg">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-100 sticky top-0">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rank</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Roll No.</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">LeetCode</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Easy</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medium</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Hard</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingRankings ? (
-                        <tr><td className="px-6 py-4 text-sm text-gray-600" colSpan="8">Loading...</td></tr>
-                      ) : rankings.length === 0 ? (
-                        <tr><td className="px-6 py-4 text-sm text-gray-600" colSpan="8">Select class and batch year to view rankings.</td></tr>
-                      ) : (
-                        rankings.map((r) => (
-                          <tr key={`${r.rollNo}-${r.rank}`} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0">
-                            <td className="px-6 py-3.5 text-sm text-gray-900">{r.rank}</td>
-                            <td className="px-6 py-3.5 text-sm text-gray-900">{r.rollNo}</td>
-                            <td className="px-6 py-3.5 text-sm font-medium text-gray-900">{r.name}</td>
-                            <td className="px-6 py-3.5 text-sm text-center">
-                              {r.leetcodeLink !== "-" ? (
-                                <a href={r.leetcodeLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                                  Link
-                                </a>
-                              ) : (
-                                "-"
-                              )}
-                            </td>
-                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.easy}</td>
-                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.medium}</td>
-                            <td className="px-6 py-3.5 text-sm text-center text-gray-600">{r.hard}</td>
-                            <td className="px-6 py-3.5 text-sm text-center font-medium text-gray-900">{r.total}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-8">
+          <Motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-xl">
+                  <Trophy size={24} className="text-blue-600" />
                 </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">LeetCode Rankings</h2>
+                  <p className="text-sm text-gray-500 font-medium">Top performers across batches and classes</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRoundsOpen(false)}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="relative group">
+                  <label className="flex items-center text-sm font-bold text-gray-700 mb-2 ml-1">
+                    <Calendar size={16} className="mr-2 text-blue-500" />
+                    Batch Year
+                  </label>
+                  <select
+                    className="w-full appearance-none rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
+                    value={selectedBatchYear}
+                    onChange={(e) => setSelectedBatchYear(e.target.value)}
+                  >
+                    <option value="">Select Batch</option>
+                    <option value="all">All Batches</option>
+                    {[...distinctBatchYears]
+                      .filter(Boolean)
+                      .sort((a, b) => a - b)
+                      .map((yr) => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                  </select>
+                  <div className="absolute right-4 bottom-3.5 pointer-events-none text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <label className="flex items-center text-sm font-bold text-gray-700 mb-2 ml-1">
+                    <Users size={16} className="mr-2 text-purple-500" />
+                    Class
+                  </label>
+                  <select
+                    className="w-full appearance-none rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={selectedClassName}
+                    onChange={(e) => setSelectedClassName(e.target.value)}
+                  >
+                    <option value="">Select Class</option>
+                    {classOptions.map((cls) => (
+                      <option key={cls} value={cls === 'All Classes' ? 'all' : cls}>{cls}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 bottom-3.5 pointer-events-none text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Rank</th>
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Roll No.</th>
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Name</th>
+                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">LeetCode</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Easy</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Med</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Hard</th>
+                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-600 uppercase tracking-widest bg-gray-100/50">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {loadingRankings ? (
+                      <tr>
+                        <td className="px-6 py-20 text-center" colSpan="8">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p className="text-gray-500 font-bold">Calculating rankings...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : rankings.length === 0 ? (
+                      <tr>
+                        <td className="px-6 py-20 text-center" colSpan="8">
+                          <div className="flex flex-col items-center justify-center text-gray-400">
+                            <LayoutGrid size={48} className="mb-4 opacity-20" />
+                            <p className="font-bold">Select class and batch year to view rankings.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      rankings.map((r) => (
+                        <tr key={`${r.rollNo}-${r.rank}`} className="hover:bg-blue-50/30 transition-colors group">
+                          <td className="px-6 py-4 border-r border-gray-50">
+                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-black ${r.rank === 1 ? "bg-yellow-100 text-yellow-700" :
+                              r.rank === 2 ? "bg-gray-100 text-gray-600" :
+                                r.rank === 3 ? "bg-orange-100 text-orange-700" :
+                                  "bg-gray-50 text-gray-400"
+                              }`}>
+                              {r.rank}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-bold text-gray-900 border-r border-gray-50">{r.rollNo}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-900 border-r border-gray-50">{r.name}</td>
+                          <td className="px-6 py-4 text-sm text-center border-r border-gray-50">
+                            {r.leetcodeLink !== "-" ? (
+                              <a href={r.leetcodeLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                                View <LayoutGrid size={14} />
+                              </a>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{r.easy}</td>
+                          <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{r.medium}</td>
+                          <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{r.hard}</td>
+                          <td className="px-6 py-4 text-sm text-center font-black text-gray-900 bg-gray-50/50">{r.total}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </Motion.div>
         </div>
+      )}
+      {monthlyReportOpen && (
+        <MonthlyReportModal
+          isOpen={monthlyReportOpen}
+          onClose={() => {
+            setMonthlyReportOpen(false);
+            setIsVerified(false);
+          }}
+          batchYear={reportBatchYear}
+          className={reportClassName}
+          batchYears={distinctBatchYears}
+          isVerified={isVerified}
+          setVerificationOpen={setVerificationOpen}
+          setVerificationError={setVerificationError}
+        />
       )}
     </div>
   );

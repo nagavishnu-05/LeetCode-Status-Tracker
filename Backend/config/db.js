@@ -1,3 +1,4 @@
+import "dotenv/config";
 import mongoose from "mongoose";
 
 const connectDB = async () => {
@@ -6,7 +7,7 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected: VCET Database`);
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
     process.exit(1);
@@ -14,3 +15,13 @@ const connectDB = async () => {
 };
 
 export default connectDB;
+
+export const monthlyDB = mongoose.createConnection(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  dbName: "Monthly",
+});
+
+monthlyDB.on("connected", () => {
+  console.log("✅ Connected to Monthly Database");
+});

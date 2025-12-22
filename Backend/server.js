@@ -7,6 +7,9 @@ import studentRoutes from "./routes/studentRoutes.js";
 import leetcodeRoutes from "./routes/leetcodeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import roundsRoutes from "./routes/roundsRoutes.js";
+import monthlyReportRoutes, { generateMonthlyReport } from "./routes/monthlyReportRoutes.js";
+import cron from "node-cron";
+import Staff from "./models/Staff.js";
 
 dotenv.config();
 const app = express();
@@ -37,6 +40,73 @@ app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
 app.use("/rounds", roundsRoutes);
+app.use("/monthly-report", monthlyReportRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Cron Job: Run every day at 6:00 PM (18:00) and check if today is a report day.
+cron.schedule("0 18 * * *", async () => {
+  const today = new Date();
+  const day = today.getDate();
+
+  // Report Days: 4th, 11th, 18th, 25th, and 2nd of next month (for Week 5)
+  let weekNumber = 0;
+  if (day === 4) weekNumber = 1;
+  else if (day === 11) weekNumber = 2;
+  else if (day === 18) weekNumber = 3;
+  else if (day === 25) weekNumber = 4;
+  else if (day === 2) weekNumber = 5;
+
+  if (weekNumber > 0) {
+    console.log(`📅 Triggering Weekly Report (Week ${weekNumber})`);
+
+    try {
+      // Fetch all active batches
+      const distinctBatches = await Staff.distinct("batchYear");
+      const classes = ["A", "B", "C", "D"];
+
+      // Fetch existing collections in Monthly DB to avoid creating new ones
+      const collections = await monthlyDB.db.listCollections().toArray();
+      const existingCollectionNames = collections.map(c => c.name);
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+
+      let reportMonthIndex = today.getMonth();
+      let reportYear = today.getFullYear();
+
+      if (weekNumber === 5) {
+        // If we are running on the 2nd, we are reporting for the *previous* month.
+        reportMonthIndex = reportMonthIndex - 1;
+        if (reportMonthIndex < 0) {
+          reportMonthIndex = 11;
+          reportYear = reportYear - 1;
+        }
+      }
+
+      const currentMonth = `${monthNames[reportMonthIndex]} ${reportYear}`;
+
+      for (const batch of distinctBatches) {
+        const collectionName = `${batch}-${batch + 4}`;
+        if (!existingCollectionNames.includes(collectionName)) {
+          console.log(`Skipping Batch ${batch} as collection ${collectionName} does not exist in Monthly DB.`);
+          continue;
+        }
+
+        for (const className of classes) {
+          try {
+            await generateMonthlyReport(batch, className, currentMonth, weekNumber);
+            console.log(`✅ Generated report for Batch ${batch} Class ${className}`);
+          } catch (err) {
+            console.error(`❌ Failed to generate for Batch ${batch} Class ${className}:`, err.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("❌ Error in cron job:", err);
+    }
+  }
+});
