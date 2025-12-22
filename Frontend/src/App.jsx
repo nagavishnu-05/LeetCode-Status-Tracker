@@ -395,7 +395,7 @@ export default function App() {
           <div className="flex items-center gap-4 mb-8">
             <div className="bg-black p-1.5 rounded-2xl">
               <img
-                src="/src/assets/LeetCode Logo.png"
+                src="/leetcode-logo.png"
                 alt="LeetCode Logo"
                 className="w-10 h-10 object-contain"
               />
