@@ -1,53 +1,104 @@
-# LeetCode Status Tracker
+# 📊 LeetCode Status Tracker
 
-The **LeetCode Status Tracker** is a full-stack web application for tracking and reporting LeetCode problem-solving progress for students, with batch and class-based filtering, rankings, and downloadable reports.
+A **full-stack web application** for tracking, reporting, and ranking LeetCode problem-solving progress for students at **Velammal College of Engineering and Technology (VCET)**, Department of Computer Science & Engineering.
 
-## 📌 Features
+[![React](https://img.shields.io/badge/React-19.x-61dafb?logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7.x-646cff?logo=vite)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.x-06b6d4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb)](https://www.mongodb.com/)
 
-### Frontend
+---
 
-* Built with React and Vite  
-* Modern UI with Tailwind CSS and Framer Motion animations  
-* Staff selection and class/batch filtering  
-* Rankings popup with batch year and class section dropdowns  
-* Responsive tables for student stats and rankings  
-* Downloadable Excel reports  
-* Clean, mobile-friendly design
+## ✨ Features
 
-### Backend
+### 📈 Core Functionality
+- **Generate Reports:** View and download detailed LeetCode statistics for any batch/section.
+- **View Rankings:** See leaderboards of top performers filtered by batch year and class section.
+- **Monthly Reports:** Access weekly progress snapshots stored in a dedicated monthly database.
+- **Export to Excel:** Download reports as `.xlsx` files with full student data and improvement metrics.
 
-* Node.js + Express REST API  
-* MongoDB for data storage  
-* Endpoints for staff, student, report, and rankings data  
-* Filtering and sorting logic for batch year and class section  
-* Excel report generation
+### 🔐 Staff Verification
+- Secure authentication for authorized staff members before generating sensitive reports.
+- Password visibility toggle for ease of use.
 
-## 🗂 File Structure
+### 🎨 Modern UI/UX
+- Beautiful, responsive design built with **Tailwind CSS** and **Framer Motion** animations.
+- Mobile-friendly, scrollable data tables.
+- Custom toast notifications and a global loading indicator.
+
+### ⏰ Automated Reports (Cron Job)
+- Backend cron job (`node-cron`) automatically generates weekly progress reports on the 4th, 11th, 18th, 25th of each month (and 2nd for Week 5).
+
+---
+
+## 🛠 Tech Stack
+
+| Layer      | Technologies                                                                 |
+|------------|------------------------------------------------------------------------------|
+| **Frontend** | React 19, Vite 7, Tailwind CSS 4, Framer Motion, Lucide Icons, XLSX         |
+| **Backend**  | Node.js 20+, Express 5, Mongoose 8, MongoDB Atlas, node-cron, Axios         |
+| **Database** | MongoDB (Main DB + Monthly Report DB)                                        |
+| **Tooling**  | ESLint, Nodemon, dotenv                                                      |
+
+---
+
+## 🗂 Project Structure
 
 ```
 LeetCode-Status-Tracker/
 ├── Backend/
 │   ├── config/
+│   │   └── db.js                # MongoDB connection (Main & Monthly DBs)
 │   ├── models/
+│   │   ├── Staff.js             # Staff schema (batchYear, section)
+│   │   ├── Student.js           # Student schema (rollNo, name, statsHistory)
+│   │   └── MonthlyReport.js     # Monthly report schema
 │   ├── routes/
-│   ├── server.js
-│   └── package.json
+│   │   ├── staffRoutes.js       # /staffs endpoints
+│   │   ├── studentRoutes.js     # /students endpoints
+│   │   ├── reportRoutes.js      # /report/:batch/:section
+│   │   ├── roundsRoutes.js      # /rounds (rankings)
+│   │   ├── leetcodeRoutes.js    # /api (LeetCode API proxy)
+│   │   └── monthlyReportRoutes.js # /monthly-report
+│   ├── server.js                # Main Express server + Cron Job
+│   ├── trigger_report.js        # Manual report trigger script
+│   ├── package.json
+│   └── .env                     # Environment variables (MONGO_URI, PORT)
+│
 ├── Frontend/
 │   ├── public/
+│   │   ├── vcet-logo.jpg
+│   │   ├── cse-logo.jpg
+│   │   └── leetcode-logo.png
 │   ├── src/
+│   │   ├── components/
+│   │   │   ├── Loader.jsx               # Global loading spinner
+│   │   │   ├── Toast.jsx                # Toast notification component
+│   │   │   ├── StaffVerificationModal.jsx # Password verification modal
+│   │   │   └── MonthlyReportModal.jsx   # Monthly report viewer
+│   │   ├── App.jsx              # Main application component
+│   │   ├── api.js               # Axios instance for API calls
+│   │   ├── index.css            # Global styles
+│   │   ├── select.css           # Custom select styling
+│   │   └── main.jsx             # React entry point
 │   ├── index.html
-│   ├── App.jsx
-│   └── package.json
+│   ├── package.json
+│   └── vite.config.js
+│
 └── README.md
 ```
 
-## 🚀 Installation & Setup
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-* Node.js (v18+ recommended)  
-* npm  
-* MongoDB (local or cloud)
+- **Node.js** v20 or higher
+- **npm** or **yarn**
+- **MongoDB** (local or Atlas cloud instance)
 
 ### 1. Clone the Repository
 
@@ -59,84 +110,101 @@ cd LeetCode-Status-Tracker
 ### 2. Install Dependencies
 
 ```bash
+# Backend
 cd Backend
 npm install
+
+# Frontend
 cd ../Frontend
 npm install
 ```
 
-### 3. Configure Database
+### 3. Configure Environment Variables
 
-Update MongoDB connection in `Backend/config/db.js`.
+Create a `.env` file in the `Backend` directory:
 
-### 4. Run the App
+```env
+PORT=5000
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<db_name>
+MONTHLY_DB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<monthly_db_name>
+```
 
-#### Backend
+### 4. Run the Application
+
+**Start Backend:**
 ```bash
 cd Backend
 npm start
+# or for development with hot-reload:
+npm run dev
 ```
-#### Frontend
+
+**Start Frontend:**
 ```bash
 cd Frontend
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
 
-## 🛠 API Endpoints
+**Access the App:** Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-* `GET /staffs` — List all staff  
-* `GET /students` — List all students  
-* `GET /report/:staffId` — Get student stats for a staff/class  
-* `GET /ranking` — Get rankings with optional batch/class filters
+---
 
-## 🎮 Usage
+## 📡 API Endpoints
 
-* Select a staff/class in-charge to view student stats  
-* Click "Next" to view the stats popup  
-* Download Excel report for the selected class  
-* Click "View Rankings" to see rankings by batch/class  
-* Filter rankings by batch year and class section (A, B, C, D)
+| Method | Endpoint                          | Description                                      |
+|--------|-----------------------------------|--------------------------------------------------|
+| GET    | `/staffs/distinct`                | Get distinct batch years                        |
+| GET    | `/report/:batchYear/:className`   | Get student stats for a specific batch/section  |
+| GET    | `/rounds`                         | Get rankings (with optional `batchYear` & `className` query) |
+| GET    | `/monthly-report/:batch/:class`   | Get monthly reports for a batch/class           |
+| POST   | `/api/admin/trigger-report`       | Manually trigger cron job (admin only)          |
 
-## ⚙️ Tech Stack
+---
 
-* React, Vite, Tailwind CSS, Framer Motion  
-* Node.js, Express, MongoDB, Mongoose  
-* XLSX for Excel export
+## 🖥 Usage Guide
 
-## 👨‍💻 Developed & Maintained By
+1. **Select Batch Year & Section** from the dropdowns on the main page.
+2. Click **Generate Report** to view LeetCode statistics.
+3. Complete **Staff Verification** (password required).
+4. View the **Student Performance Report** popup.
+5. Click **Export to Excel** to download the report.
+6. Use **View Rankings** to see leaderboards by batch/class.
+7. Use **Monthly Report** to access weekly snapshots.
 
-* Devis Aruna Devi D  
-* Nagavishnu Karthik B S
+---
+
+## 👨‍💻 Authors & Maintainers
+
+- **Nagavishnu Karthik B S** - Full-Stack Development
+- **Devis Aruna Devi D** - Project Support
 
 ---
 
 ## 📜 License
 
-This project is intended for academic and internal use by the LeetCode Status Tracker team. Redistribution or commercial use is not permitted without prior permission.
-
-## 🛠 Badges
-
-![React](https://img.shields.io/badge/React-18.0-blue) 
-![Vite](https://img.shields.io/badge/Vite-Frontend-purple) 
-![License](https://img.shields.io/badge/License-Academic-orange) 
-![PRs](https://img.shields.io/badge/PRs-Welcome-brightgreen)
-
-## 🤝 Contributing
-
-1. Fork the repository  
-2. Create a new branch (`feature-name`)  
-3. Commit your changes  
-4. Push to the branch  
-5. Submit a pull request
-
-## 🚀 Future Enhancements
-
-* Role-based access for faculty and placement coordinators  
-* Automated resume generation for students  
-* AI-based placement prediction and insights  
-* Email & SMS notifications for drive updates
+This project is intended for **academic and internal use** by VCET's CSE Department. Redistribution or commercial use is not permitted without prior permission.
 
 ---
 
-<h3 align="center">© 2023 – 2027 CSE B of VCET</h3>
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 🚀 Future Roadmap
+
+- [ ] Role-based access for faculty and placement coordinators
+- [ ] Automated email notifications for report generation
+- [ ] AI-based performance insights and predictions
+- [ ] Integration with more coding platforms (CodeChef, HackerRank)
+
+---
+
+<p align="center">
+  <strong>© 2023 – 2027 | CSE Department, VCET</strong>
+</p>
