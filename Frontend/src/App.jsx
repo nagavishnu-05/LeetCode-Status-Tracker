@@ -5,11 +5,14 @@ import * as XLSX from "xlsx";
 import api from "./api";
 import MonthlyReportModal from "./components/MonthlyReportModal";
 import StaffVerificationModal from "./components/StaffVerificationModal";
+import Loader from "./components/Loader";
+import Toast from "./components/Toast";
 import './select.css';
 
 export default function App() {
   const [studentStats, setStudentStats] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "info", visible: false });
   const [popupOpen, setPopupOpen] = useState(false);
   const [roundsOpen, setRoundsOpen] = useState(false);
   const [monthlyReportOpen, setMonthlyReportOpen] = useState(false);
@@ -128,10 +131,14 @@ export default function App() {
   useEffect(() => {
     const fetchDistinct = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/staffs/distinct");
         setDistinctBatchYears(res.data?.batchYears || []);
       } catch (err) {
         console.error("Error fetching distinct staff values:", err);
+        setToast({ message: "Failed to load batch years", type: "error", visible: true });
+      } finally {
+        setLoading(false);
       }
     };
     fetchDistinct();
@@ -141,8 +148,16 @@ export default function App() {
 
   // Fetch student stats
   const fetchStudentStats = async () => {
-    if (!reportBatchYear || !reportClassName) {
-      alert("Please select both batch year and section");
+    if (!reportBatchYear && !reportClassName) {
+      setToast({ message: "Please select a batch year and section", type: "error", visible: true });
+      return;
+    }
+    if (!reportBatchYear) {
+      setToast({ message: "Please select a batch year", type: "error", visible: true });
+      return;
+    }
+    if (!reportClassName) {
+      setToast({ message: "Please select a section", type: "error", visible: true });
       return;
     }
 
@@ -205,7 +220,7 @@ export default function App() {
       setPopupOpen(true);
     } catch (err) {
       console.error("Error fetching stats:", err);
-      alert("Failed to fetch student stats");
+      setToast({ message: "Failed to fetch student stats", type: "error", visible: true });
     } finally {
       setLoading(false);
     }
@@ -287,7 +302,7 @@ export default function App() {
       setPopupOpen(true);
     } catch (err) {
       console.error("Error fetching stats:", err);
-      alert("Failed to fetch student stats");
+      setToast({ message: "Failed to fetch student stats", type: "error", visible: true });
     } finally {
       setLoading(false);
     }
@@ -385,6 +400,16 @@ export default function App() {
         </div>
         <img src="/cse-logo.jpg" alt="CSE Logo" className="h-16 w-auto object-contain" />
       </header>
+
+      {/* Global Loader & Toast */}
+      {loading && <Loader />}
+      {toast.visible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
+        />
+      )}
       <div className="flex-1 flex items-center justify-center">
         <Motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -456,7 +481,7 @@ export default function App() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="button"
-              disabled={!reportBatchYear || !reportClassName || loading}
+              disabled={loading}
               onClick={fetchStudentStats}
               className="w-full flex items-center justify-center gap-3 rounded-2xl bg-gray-900 text-white py-4 font-bold shadow-xl shadow-gray-900/20 disabled:opacity-50 transition-all duration-300 active:scale-95"
             >

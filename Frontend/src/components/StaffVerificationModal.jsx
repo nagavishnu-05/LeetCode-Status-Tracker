@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion as Motion } from "framer-motion";
-import { ShieldCheck, Users, X } from "lucide-react";
+import { ShieldCheck, Users, X, Eye, EyeOff } from "lucide-react";
 
 export default function StaffVerificationModal({
     isOpen,
@@ -11,6 +11,7 @@ export default function StaffVerificationModal({
 }) {
     const [selectedVerifier, setSelectedVerifier] = useState("");
     const [verifierPassword, setVerifierPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -75,14 +76,23 @@ export default function StaffVerificationModal({
                             <ShieldCheck size={16} className="mr-2 text-purple-500" />
                             Password
                         </label>
-                        <input
-                            type="password"
-                            placeholder="••••••••"
-                            className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
-                            value={verifierPassword}
-                            onChange={(e) => setVerifierPassword(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all pr-12"
+                                value={verifierPassword}
+                                onChange={(e) => setVerifierPassword(e.target.value)}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
 
                     {error && (
