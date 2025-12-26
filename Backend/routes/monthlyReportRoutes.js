@@ -19,29 +19,31 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
     try {
         const MonthlyReport = getMonthlyReportModel(Number(batchYear));
 
-        // Fetch all existing reports for this class to get the student list
-        const allExistingReports = await MonthlyReport.find({ className });
+        // Fetch all existing students from this collection who belong to this class
+        // Even if they don't have a report for the CURRENT month yet, they exist in the collection.
+        const allStudentsInCollection = await MonthlyReport.find({ className });
 
         // Get unique students by rollNo
         const uniqueStudentsMap = new Map();
-        allExistingReports.forEach(r => {
-            if (!uniqueStudentsMap.has(r.rollNo)) {
-                uniqueStudentsMap.set(r.rollNo, {
-                    rollNo: r.rollNo,
-                    registerNo: r.registerNo,
-                    name: r.name,
-                    leetcodeLink: r.leetcodeLink,
-                    className: r.className,
-                    batchYear: r.batchYear,
-                    startTotal: r.startTotal // Keep track of startTotal if we need to carry it over
+        allStudentsInCollection.forEach(s => {
+            if (!uniqueStudentsMap.has(s.rollNo)) {
+                uniqueStudentsMap.set(s.rollNo, {
+                    rollNo: s.rollNo,
+                    registerNo: s.registerNo,
+                    name: s.name,
+                    leetcodeLink: s.leetcodeLink,
+                    className: s.className,
+                    batchYear: s.batchYear,
+                    startTotal: s.startTotal || 0
                 });
             }
         });
 
         const students = Array.from(uniqueStudentsMap.values());
+        console.log(`Found ${students.length} students in Monthly DB collection for Batch ${batchYear} Class ${className}`);
 
         if (students.length === 0) {
-            console.log(`No students found in Monthly DB for Batch ${batchYear} Class ${className}. Skipping report generation.`);
+            console.log(`No students found in Monthly DB for Batch ${batchYear} Class ${className}.`);
             return [];
         }
         const reportData = [];
@@ -54,32 +56,45 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
             let fetchSuccess = false;
 
             if (student.leetcodeLink) {
-                try {
-                    const username = extractUsername(student.leetcodeLink);
-                    if (username) {
-                        const apiRes = await fetch(`https://leetcode-stats-api.vercel.app/${username}`);
-                        if (apiRes.ok) {
-                            const data = await apiRes.json();
-                            if (data.status === "success" || data.totalSolved !== undefined) {
-                                currentStats = {
-                                    easy: data.easySolved || 0,
-                                    medium: data.mediumSolved || 0,
-                                    hard: data.hardSolved || 0,
-                                    total: data.totalSolved || 0,
-                                    date: new Date()
-                                };
-                                fetchSuccess = true;
-
-                                student.statsHistory.push(currentStats);
-                                if (student.statsHistory.length > 2) student.statsHistory.shift();
-                                await student.save();
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        const username = extractUsername(student.leetcodeLink);
+                        if (username) {
+                            const apiRes = await fetch(`https://leetcode-stats-api.vercel.app/${username}`, {
+                                signal: AbortSignal.timeout(5000)
+                            });
+                            if (apiRes.ok) {
+                                const data = await apiRes.json();
+                                if (data.status === "success" || data.totalSolved !== undefined) {
+                                    currentStats = {
+                                        easy: data.easySolved || 0,
+                                        medium: data.mediumSolved || 0,
+                                        hard: data.hardSolved || 0,
+                                        total: data.totalSolved || 0,
+                                        date: new Date()
+                                    };
+                                    fetchSuccess = true;
+                                }
+                                break; // Success
+                            } else {
+                                throw new Error(`API responded with status ${apiRes.status}`);
                             }
+                        } else {
+                            break; // No username
+                        }
+                    } catch (err) {
+                        retries--;
+                        if (retries === 0) {
+                            console.error(`Failed to fetch stats for ${student.name} after 3 attempts:`, err.message);
+                        } else {
+                            console.warn(`Retry ${3 - retries} for ${student.name} due to: ${err.message}`);
+                            await new Promise(resolve => setTimeout(resolve, 500));
                         }
                     }
-                } catch (err) {
-                    console.error(`Failed to fetch stats for ${student.name}:`, err.message);
-                    // Fallback removed as per user request (no interaction with Main DB statsHistory)
                 }
+                // Add a small delay between students
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             // 2. Handle Deletion and Baseline for Week 1
@@ -219,41 +234,43 @@ router.get("/:batchYear/:className", async (req, res) => {
 
         let reports = await MonthlyReport.find(query).sort({ rollNo: 1 });
 
-        // If no reports found for this month, try to get student list from ANY month in Monthly DB
-        if (reports.length === 0) {
-            const allReports = await MonthlyReport.find({ className }).sort({ rollNo: 1 });
+        // Fetch all unique students that have EVER been in this class's monthly reports
+        const allStudentsInCollection = await MonthlyReport.find({ className });
+        const uniqueStudentsMap = new Map();
 
-            if (allReports.length > 0) {
-                // Get unique students by rollNo
-                const uniqueStudents = [];
-                const seenRollNos = new Set();
-
-                for (const r of allReports) {
-                    if (!seenRollNos.has(r.rollNo)) {
-                        seenRollNos.add(r.rollNo);
-                        uniqueStudents.push({
-                            rollNo: r.rollNo,
-                            registerNo: r.registerNo,
-                            name: r.name,
-                            leetcodeLink: r.leetcodeLink,
-                            className: r.className,
-                            batchYear: r.batchYear,
-                            month: month,
-                            startTotal: 0,
-                            weeklyPerformance: [],
-                            overallStatus: null,
-                            isPlaceholder: true
-                        });
-                    }
-                }
-                reports = uniqueStudents;
-            } else {
-                // No reports at all in Monthly DB for this class
-                reports = [];
+        // 1. Populate map with all known students from history
+        allStudentsInCollection.forEach(s => {
+            if (!uniqueStudentsMap.has(s.rollNo)) {
+                uniqueStudentsMap.set(s.rollNo, {
+                    rollNo: s.rollNo,
+                    registerNo: s.registerNo,
+                    name: s.name,
+                    leetcodeLink: s.leetcodeLink,
+                    className: s.className,
+                    batchYear: s.batchYear,
+                    month: month,
+                    startTotal: 0,
+                    weeklyPerformance: [],
+                    overallStatus: null,
+                    isPlaceholder: true // Default to placeholder
+                });
             }
-        }
+        });
 
-        res.json(reports);
+        // 2. Overwrite with actual report data for this month if it exists
+        reports.forEach(r => {
+            uniqueStudentsMap.set(r.rollNo, r); // This removes the isPlaceholder flag since 'r' is a real doc
+        });
+
+        // 3. Convert map back to array and sort
+        const finalReports = Array.from(uniqueStudentsMap.values()).sort((a, b) => {
+            // Safe sort in case rollNo is missing or not a string (though it should be)
+            const rollA = String(a.rollNo || "");
+            const rollB = String(b.rollNo || "");
+            return rollA.localeCompare(rollB, undefined, { numeric: true });
+        });
+
+        res.json(finalReports);
     } catch (err) {
         console.error("Error fetching reports:", err);
         res.status(500).json({ message: "Internal Server Error" });

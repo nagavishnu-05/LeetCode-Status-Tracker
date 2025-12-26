@@ -516,7 +516,7 @@ export default function App() {
           <Motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-7xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="w-full max-w-[95vw] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-3">
@@ -556,7 +556,7 @@ export default function App() {
                       <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">LeetCode</th>
                       <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
                       <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Current Report ({studentStats[0]?.curr.date || "-"})</th>
-                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest">Improvement</th>
+                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Improvement</th>
                     </tr>
                     <tr className="bg-gray-50/50">
                       <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider border-r border-gray-100">Easy</th>
@@ -593,7 +593,7 @@ export default function App() {
                         <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.curr.medium}</td>
                         <td className="px-4 py-4 text-sm text-center text-gray-500 border-r border-gray-50">{s.curr.hard}</td>
                         <td className="px-4 py-4 text-sm text-center font-black text-gray-900 border-r border-gray-50 bg-gray-50/50">{s.curr.total}</td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-6 py-4 text-center whitespace-nowrap border-l border-gray-50">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${s.improvement > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                             }`}>
                             {s.improvement > 0 ? `+${s.improvement}` : s.improvement}
@@ -611,7 +611,7 @@ export default function App() {
           <Motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="w-full max-w-[95vw] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-3">

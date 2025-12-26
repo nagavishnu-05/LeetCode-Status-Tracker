@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import connectDB from "./config/db.js";
+import connectDB, { monthlyDB } from "./config/db.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import leetcodeRoutes from "./routes/leetcodeRoutes.js";
@@ -42,13 +42,10 @@ app.use("/report", reportRoutes);
 app.use("/rounds", roundsRoutes);
 app.use("/monthly-report", monthlyReportRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-// Cron Job: Run every day at 6:00 PM (18:00) and check if today is a report day.
-cron.schedule("0 18 * * *", async () => {
+// Helper function to run the report generation process
+async function runReportProcess(dayOverride = null) {
   const today = new Date();
-  const day = today.getDate();
+  const day = dayOverride || today.getDate();
 
   // Report Days: 4th, 11th, 18th, 25th, and 2nd of next month (for Week 5)
   let weekNumber = 0;
@@ -67,8 +64,9 @@ cron.schedule("0 18 * * *", async () => {
       const classes = ["A", "B", "C", "D"];
 
       // Fetch existing collections in Monthly DB to avoid creating new ones
-      const collections = await monthlyDB.db.listCollections().toArray();
-      const existingCollectionNames = collections.map(c => c.name);
+      // Fetch existing collections in Monthly DB to avoid creating new ones
+      // Removed unreliable listCollections check. We will try to generate for all batch/class combos.
+
 
       const monthNames = [
         "January", "February", "March", "April", "May", "June",
@@ -90,12 +88,6 @@ cron.schedule("0 18 * * *", async () => {
       const currentMonth = `${monthNames[reportMonthIndex]} ${reportYear}`;
 
       for (const batch of distinctBatches) {
-        const collectionName = `${batch}-${batch + 4}`;
-        if (!existingCollectionNames.includes(collectionName)) {
-          console.log(`Skipping Batch ${batch} as collection ${collectionName} does not exist in Monthly DB.`);
-          continue;
-        }
-
         for (const className of classes) {
           try {
             await generateMonthlyReport(batch, className, currentMonth, weekNumber);
@@ -106,7 +98,29 @@ cron.schedule("0 18 * * *", async () => {
         }
       }
     } catch (err) {
-      console.error("❌ Error in cron job:", err);
+      console.error("❌ Error in report process:", err);
+      throw err;
     }
+  } else {
+    console.log(`Day ${day} is not a scheduled report day.`);
   }
+}
+
+// Temporary manual trigger for cron job (for debugging/recovery)
+app.all("/api/admin/trigger-report", async (req, res) => {
+  try {
+    const dayOverride = req.query?.dayOverride || req.body?.dayOverride;
+    await runReportProcess(dayOverride);
+    res.json({ message: "Report generation process completed. Check server logs for details." });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to run report process", error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Cron Job: Run every day at 12:30 PM UTC (which is 6:00 PM IST)
+cron.schedule("30 12 * * *", () => {
+  runReportProcess();
 });

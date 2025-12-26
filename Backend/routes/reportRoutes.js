@@ -21,9 +21,10 @@ router.get("/:batchYear/:className", async (req, res) => {
       className: className,
     }).sort({ rollNo: 1 });
 
-    await Promise.all(
-      students.map(async (student) => {
-        if (student.leetcodeLink) {
+    for (const student of students) {
+      if (student.leetcodeLink) {
+        let retries = 3;
+        while (retries > 0) {
           try {
             const username = student.leetcodeLink
               .split("/")
@@ -31,7 +32,8 @@ router.get("/:batchYear/:className", async (req, res) => {
               .pop();
 
             const { data } = await axios.get(
-              `https://leetcode-stats-api.vercel.app/${username}`
+              `https://leetcode-stats-api.vercel.app/${username}`,
+              { timeout: 5000 }
             );
 
             const stats = {
@@ -44,12 +46,22 @@ router.get("/:batchYear/:className", async (req, res) => {
             student.statsHistory.push({ date: new Date(), ...stats });
             if (student.statsHistory.length > 2) student.statsHistory.shift();
             await student.save();
+
+            // Add a small delay to avoid overwhelming the API
+            await new Promise(resolve => setTimeout(resolve, 100));
+            break; // Success, exit retry loop
           } catch (err) {
-            console.error(`Error updating stats for ${student.name}`, err);
+            retries--;
+            if (retries === 0) {
+              console.error(`Error updating stats for ${student.name} after 3 attempts:`, err.message);
+            } else {
+              console.warn(`Retry ${3 - retries} for ${student.name} due to: ${err.message}`);
+              await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
+            }
           }
         }
-      })
-    );
+      }
+    }
 
     res.json(students);
   } catch (err) {

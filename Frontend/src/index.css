@@ -45,24 +45,34 @@ select option:checked {
 }
 
 /* Custom scrollbar */
-select {
+.custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f8fafc;
 }
 
-select::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
   width: 8px;
 }
 
-select::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: #f8fafc;
-  border-radius: 4px;
+  border-radius: 10px;
 }
 
-select::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
-  border-radius: 4px;
+  border-radius: 10px;
   border: 2px solid #f8fafc;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+select {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
 }
 
 /* List Box Styling */
