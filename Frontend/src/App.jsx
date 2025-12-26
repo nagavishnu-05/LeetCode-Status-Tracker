@@ -569,18 +569,18 @@ export default function App() {
               </div>
             </div>
 
-            <div className="p-8 overflow-auto custom-scrollbar">
-              <div className="ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
+            <div className="p-4 sm:p-8 overflow-x-auto custom-scrollbar">
+              <div className="min-w-max ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">S.No.</th>
-                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Roll No.</th>
-                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Register No.</th>
-                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Name</th>
-                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">LeetCode</th>
-                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
-                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30">Current Report ({studentStats[0]?.curr.date || "-"})</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">S.No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Roll No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Register No.</th>
+                      <th rowSpan="2" className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Name</th>
+                      <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">LeetCode</th>
+                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30 whitespace-nowrap">Previous Report ({studentStats[0]?.prev.date || "-"})</th>
+                      <th colSpan="4" className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 border-r border-gray-100 bg-gray-100/30 whitespace-nowrap">Current Report ({studentStats[0]?.curr.date || "-"})</th>
                       <th rowSpan="2" className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Improvement</th>
                     </tr>
                     <tr className="bg-gray-50/50">
@@ -656,7 +656,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="p-8 overflow-auto custom-scrollbar">
+            <div className="p-4 sm:p-8 overflow-x-auto custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="relative group">
                   <label className="flex items-center text-sm font-bold text-gray-700 mb-2 ml-1">
@@ -707,18 +707,18 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
+              <div className="min-w-max ring-1 ring-gray-100 rounded-3xl overflow-hidden shadow-sm">
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Rank</th>
-                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Roll No.</th>
-                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Name</th>
-                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">LeetCode</th>
-                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Easy</th>
-                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Med</th>
-                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100">Hard</th>
-                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-600 uppercase tracking-widest bg-gray-100/50">Total</th>
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Rank</th>
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Roll No.</th>
+                      <th className="px-6 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Name</th>
+                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">LeetCode</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Easy</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Med</th>
+                      <th className="px-4 py-5 text-center text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-gray-100 whitespace-nowrap">Hard</th>
+                      <th className="px-6 py-5 text-center text-xs font-bold text-gray-600 uppercase tracking-widest bg-gray-100/50 whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
