@@ -306,7 +306,27 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const getRomanYear = (batchYear) => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const gradYear = parseInt(batchYear);
+    if (isNaN(gradYear)) return "";
+    let yearsLeft = gradYear - currentYear;
+    if (currentMonth >= 5) yearsLeft--;
+    const studyYear = 4 - yearsLeft;
+    const numerals = ["", "I", "II", "III", "IV"];
+    return numerals[Math.min(Math.max(studyYear, 1), 4)];
+  };
+
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
 
   // Download Excel
   const handleDownload = () => {
@@ -385,8 +405,10 @@ export default function App() {
     worksheet["!cols"] = Array(header2.length).fill({ wch: 18 });
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "LeetCode Stats");
-    const date = new Date().toISOString().split("T")[0];
-    const fileName = `${reportBatchYear}-CSE-${reportClassName}-${date}.xlsx`;
+
+    const romanYear = getRomanYear(reportBatchYear);
+    const formattedDate = formatDate(new Date());
+    const fileName = `${romanYear} CSE ${reportClassName} LeetCode Status - ${formattedDate}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 

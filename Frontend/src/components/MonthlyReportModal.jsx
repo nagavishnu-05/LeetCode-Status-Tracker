@@ -59,6 +59,26 @@ export default function MonthlyReportModal({
         }
     }, [isOpen, selectedBatch, selectedClass, isVerified]);
 
+    const getRomanYear = (batchYear) => {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const gradYear = parseInt(batchYear);
+        if (isNaN(gradYear)) return "";
+        let yearsLeft = gradYear - currentYear;
+        if (currentMonth >= 5) yearsLeft--;
+        const studyYear = 4 - yearsLeft;
+        const numerals = ["", "I", "II", "III", "IV"];
+        return numerals[Math.min(Math.max(studyYear, 1), 4)];
+    };
+
+    const formatDate = (date) => {
+        const d = new Date(date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}.${month}.${year}`;
+    };
+
     const fetchReports = async () => {
         setLoading(true);
         try {
@@ -102,7 +122,11 @@ export default function MonthlyReportModal({
         const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Report");
-        XLSX.writeFile(workbook, `Monthly_Report_${selectedBatch}_${selectedClass}_${selectedMonth.replace(" ", "_")}.xlsx`);
+
+        const romanYear = getRomanYear(selectedBatch);
+        const formattedDate = formatDate(new Date());
+        const fileName = `${romanYear} CSE ${selectedClass} LeetCode Status - ${formattedDate}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
     };
 
     if (!isOpen) return null;

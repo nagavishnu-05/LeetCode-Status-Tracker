@@ -40,7 +40,7 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
         });
 
         const students = Array.from(uniqueStudentsMap.values());
-        console.log(`Found ${students.length} students in Monthly DB collection for Batch ${batchYear} Class ${className}`);
+        // console.log(`Found ${students.length} students in Monthly DB collection for Batch ${batchYear} Class ${className}`);
 
         if (students.length === 0) {
             console.log(`No students found in Monthly DB for Batch ${batchYear} Class ${className}.`);
@@ -48,149 +48,179 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
         }
         const reportData = [];
 
-        console.log(`Starting report generation for Batch ${batchYear} Class ${className} - Week ${weekNumber}`);
+        // console.log(`Starting report generation for Batch ${batchYear} Class ${className} - Week ${weekNumber}`);
 
-        for (const student of students) {
-            // 1. Fetch Live Data from LeetCode API
-            let currentStats = { easy: 0, medium: 0, hard: 0, total: 0 };
-            let fetchSuccess = false;
+        const batchSize = 30; // Increased concurrency
+        const ops = [];
 
-            if (student.leetcodeLink) {
-                let retries = 3;
-                while (retries > 0) {
-                    try {
-                        const username = extractUsername(student.leetcodeLink);
-                        if (username) {
-                            const apiRes = await fetch(`https://leetcode-stats-api.vercel.app/${username}`, {
-                                signal: AbortSignal.timeout(5000)
-                            });
-                            if (apiRes.ok) {
-                                const data = await apiRes.json();
-                                if (data.status === "success" || data.totalSolved !== undefined) {
-                                    currentStats = {
-                                        easy: data.easySolved || 0,
-                                        medium: data.mediumSolved || 0,
-                                        hard: data.hardSolved || 0,
-                                        total: data.totalSolved || 0,
-                                        date: new Date()
-                                    };
-                                    fetchSuccess = true;
+        for (let i = 0; i < students.length; i += batchSize) {
+            const batch = students.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (student) => {
+                // 1. Fetch Live Data from LeetCode API
+                let currentStats = { easy: 0, medium: 0, hard: 0, total: 0 };
+                let fetchSuccess = false;
+
+                if (student.leetcodeLink) {
+                    let retries = 3;
+                    while (retries > 0) {
+                        try {
+                            const username = extractUsername(student.leetcodeLink);
+                            if (username) {
+                                const apiRes = await fetch(`https://leetcode-stats-api.vercel.app/${username}`, {
+                                    signal: AbortSignal.timeout(5000)
+                                });
+                                if (apiRes.ok) {
+                                    const data = await apiRes.json();
+                                    if (data.status === "success" || data.totalSolved !== undefined) {
+                                        currentStats = {
+                                            easy: data.easySolved || 0,
+                                            medium: data.mediumSolved || 0,
+                                            hard: data.hardSolved || 0,
+                                            total: data.totalSolved || 0,
+                                            date: new Date()
+                                        };
+                                        fetchSuccess = true;
+                                    }
+                                    break; // Success
+                                } else {
+                                    throw new Error(`API responded with status ${apiRes.status}`);
                                 }
-                                break; // Success
                             } else {
-                                throw new Error(`API responded with status ${apiRes.status}`);
+                                break; // No username
                             }
-                        } else {
-                            break; // No username
-                        }
-                    } catch (err) {
-                        retries--;
-                        if (retries === 0) {
-                            console.error(`Failed to fetch stats for ${student.name} after 3 attempts:`, err.message);
-                        } else {
-                            console.warn(`Retry ${3 - retries} for ${student.name} due to: ${err.message}`);
-                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } catch (err) {
+                            retries--;
+                            if (retries === 0) {
+                                console.error(`Failed to fetch stats for ${student.name} after 3 attempts:`, err.message);
+                            } else {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
                         }
                     }
                 }
-                // Add a small delay between students
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
 
-            // 2. Handle Deletion and Baseline for Week 1
-            if (Number(weekNumber) === 1) {
-                // Find previous month's report to get baseline total
-                const lastMonthReport = await MonthlyReport.findOne({
-                    rollNo: student.rollNo,
-                    month: { $ne: month }
-                }).sort({ reportDate: -1 });
-
-                let baselineTotal = 0;
-                if (lastMonthReport && lastMonthReport.weeklyPerformance.length > 0) {
-                    baselineTotal = lastMonthReport.weeklyPerformance[lastMonthReport.weeklyPerformance.length - 1].solved.total;
-                }
-
-                // Delete old reports for this student (all months except current)
-                await MonthlyReport.deleteMany({
-                    rollNo: student.rollNo,
-                    month: { $ne: month }
-                });
-
-                // Calculate Week 1 performance (not needed for display anymore, but keeping structure)
-                const solvedSinceLastCheck = currentStats.total - baselineTotal;
-
-                const newReport = new MonthlyReport({
-                    rollNo: student.rollNo,
-                    registerNo: student.registerNo,
-                    name: student.name,
-                    leetcodeLink: student.leetcodeLink,
-                    className: student.className,
-                    batchYear: Number(batchYear),
-                    month: month,
-                    startTotal: baselineTotal,
-                    weeklyPerformance: [{
-                        weekNumber: 1,
-                        date: new Date(),
-                        solved: currentStats,
-                        performanceCategory: "Average" // Placeholder
-                    }]
-                });
-
-                await newReport.save();
-                reportData.push(newReport);
-            } else {
-                // 3. Handle Weeks 2-5
-                let reportDoc = await MonthlyReport.findOne({
-                    rollNo: student.rollNo,
-                    month: month
-                });
-
-                if (!reportDoc) {
-                    reportDoc = new MonthlyReport({
+                if (Number(weekNumber) === 1) {
+                    // Optimized: Only fetch what's needed
+                    const lastMonthReport = await MonthlyReport.findOne({
                         rollNo: student.rollNo,
-                        registerNo: student.registerNo,
-                        name: student.name,
-                        leetcodeLink: student.leetcodeLink,
-                        className: student.className,
-                        batchYear: Number(batchYear),
-                        month: month,
-                        startTotal: currentStats.total, // Fallback if Week 1 was missed
-                        weeklyPerformance: []
+                        month: { $ne: month }
+                    }).sort({ reportDate: -1 }).select('weeklyPerformance');
+
+                    let baselineTotal = 0;
+                    if (lastMonthReport && lastMonthReport.weeklyPerformance.length > 0) {
+                        baselineTotal = lastMonthReport.weeklyPerformance[lastMonthReport.weeklyPerformance.length - 1].solved.total;
+                    }
+
+                    ops.push({
+                        deleteOne: {
+                            filter: { rollNo: student.rollNo, month: { $ne: month } }
+                        }
+                    });
+
+                    ops.push({
+                        insertOne: {
+                            document: {
+                                rollNo: student.rollNo,
+                                registerNo: student.registerNo,
+                                name: student.name,
+                                leetcodeLink: student.leetcodeLink,
+                                className: student.className,
+                                batchYear: Number(batchYear),
+                                month: month,
+                                startTotal: baselineTotal,
+                                weeklyPerformance: [{
+                                    weekNumber: 1,
+                                    date: new Date(),
+                                    solved: currentStats,
+                                    performanceCategory: "Average"
+                                }]
+                            }
+                        }
+                    });
+                } else {
+                    const existingReport = await MonthlyReport.findOne({
+                        rollNo: student.rollNo,
+                        month: month
+                    });
+
+                    let updateData;
+                    if (!existingReport) {
+                        updateData = {
+                            $setOnInsert: {
+                                rollNo: student.rollNo,
+                                registerNo: student.registerNo,
+                                name: student.name,
+                                leetcodeLink: student.leetcodeLink,
+                                className: student.className,
+                                batchYear: Number(batchYear),
+                                startTotal: currentStats.total
+                            },
+                            $push: {
+                                weeklyPerformance: {
+                                    weekNumber: Number(weekNumber),
+                                    date: new Date(),
+                                    solved: currentStats,
+                                    performanceCategory: "Average"
+                                }
+                            }
+                        };
+                    } else {
+                        const existingWeekIndex = existingReport.weeklyPerformance.findIndex(w => w.weekNumber === Number(weekNumber));
+                        if (existingWeekIndex !== -1) {
+                            // Update existing week
+                            const updateKey = `weeklyPerformance.${existingWeekIndex}`;
+                            updateData = {
+                                $set: {
+                                    [updateKey]: {
+                                        weekNumber: Number(weekNumber),
+                                        date: new Date(),
+                                        solved: currentStats,
+                                        performanceCategory: "Average"
+                                    }
+                                }
+                            };
+                        } else {
+                            // Push new week
+                            updateData = {
+                                $push: {
+                                    weeklyPerformance: {
+                                        weekNumber: Number(weekNumber),
+                                        date: new Date(),
+                                        solved: currentStats,
+                                        performanceCategory: "Average"
+                                    }
+                                }
+                            };
+                        }
+
+                        if (Number(weekNumber) === 5) {
+                            const totalMonthlySolved = currentStats.total - existingReport.startTotal;
+                            let overallStatus = "Average";
+                            if (totalMonthlySolved >= 17) overallStatus = "Consistent";
+                            else if (totalMonthlySolved <= 10) overallStatus = "Low";
+                            updateData.$set = { ...updateData.$set, overallStatus };
+                        }
+                    }
+
+                    ops.push({
+                        updateOne: {
+                            filter: { rollNo: student.rollNo, month: month },
+                            update: updateData,
+                            upsert: true
+                        }
                     });
                 }
-
-                const existingWeekIndex = reportDoc.weeklyPerformance.findIndex(w => w.weekNumber === Number(weekNumber));
-
-                const newWeekData = {
-                    weekNumber: Number(weekNumber),
-                    date: new Date(),
-                    solved: currentStats,
-                    performanceCategory: "Average" // Placeholder
-                };
-
-                if (existingWeekIndex !== -1) {
-                    reportDoc.weeklyPerformance[existingWeekIndex] = newWeekData;
-                } else {
-                    reportDoc.weeklyPerformance.push(newWeekData);
-                }
-
-                // 4. Calculate Overall Status on Week 5
-                if (Number(weekNumber) === 5) {
-                    const totalMonthlySolved = currentStats.total - reportDoc.startTotal;
-
-                    let overallStatus = "Average";
-                    if (totalMonthlySolved >= 17) overallStatus = "Consistent";
-                    else if (totalMonthlySolved <= 10) overallStatus = "Low";
-                    else overallStatus = "Average";
-
-                    reportDoc.overallStatus = overallStatus;
-                }
-
-                await reportDoc.save();
-                reportData.push(reportDoc);
+            }));
+            // Small gap between batches to avoid overwhelming the external API
+            if (i + batchSize < students.length) {
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
         }
-        return reportData;
+
+        if (ops.length > 0) {
+            await MonthlyReport.bulkWrite(ops);
+        }
+        return { success: true, count: students.length };
     } catch (err) {
         console.error("Error in generateMonthlyReport:", err);
         throw err;

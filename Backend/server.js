@@ -87,22 +87,24 @@ async function runReportProcess(dayOverride = null) {
 
       const currentMonth = `${monthNames[reportMonthIndex]} ${reportYear}`;
 
-      for (const batch of distinctBatches) {
-        for (const className of classes) {
+      await Promise.all(distinctBatches.map(async (batch) => {
+        // Process classes in parallel for each batch to speed up the process
+        await Promise.all(classes.map(async (className) => {
           try {
             await generateMonthlyReport(batch, className, currentMonth, weekNumber);
-            console.log(`✅ Generated report for Batch ${batch} Class ${className}`);
+            // console.log(`✅ Generated report for Batch ${batch} Class ${className}`);
           } catch (err) {
             console.error(`❌ Failed to generate for Batch ${batch} Class ${className}:`, err.message);
           }
-        }
-      }
+        }));
+      }));
+
     } catch (err) {
       console.error("❌ Error in report process:", err);
       throw err;
     }
   } else {
-    console.log(`Day ${day} is not a scheduled report day.`);
+    // console.log(`Day ${day} is not a scheduled report day.`);
   }
 }
 
