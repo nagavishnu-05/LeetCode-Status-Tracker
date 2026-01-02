@@ -104,7 +104,7 @@ async function runReportProcess(dayOverride = null) {
       throw err;
     }
   } else {
-    // console.log(`Day ${day} is not a scheduled report day.`);
+    console.log(`ℹ️ Day ${day} is not a scheduled report day (Scheduled: 4, 11, 18, 25, 2).`);
   }
 }
 
@@ -122,7 +122,10 @@ app.all("/api/admin/trigger-report", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
-// Cron Job: Run every day at 12:30 PM UTC (which is 6:00 PM IST)
-cron.schedule("30 12 * * *", () => {
+// Cron Job: Run every day at 6:00 PM IST
+cron.schedule("00 18 * * *", () => {
+  console.log("⏱️ Cron Trigger: Checking for scheduled reports...");
   runReportProcess();
+}, {
+  timezone: "Asia/Kolkata"
 });

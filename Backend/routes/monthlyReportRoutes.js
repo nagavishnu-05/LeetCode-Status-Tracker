@@ -1,6 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
 import { getMonthlyReportModel } from "../models/MonthlyReport.js";
+import { getStudentModel } from "../models/Student.js";
 
 const router = express.Router();
 
@@ -17,29 +18,8 @@ function extractUsername(input) {
 // Standalone function for report generation (can be called by cron or API)
 export async function generateMonthlyReport(batchYear, className, month, weekNumber) {
     try {
-        const MonthlyReport = getMonthlyReportModel(Number(batchYear));
-
-        // Fetch all existing students from this collection who belong to this class
-        // Even if they don't have a report for the CURRENT month yet, they exist in the collection.
-        const allStudentsInCollection = await MonthlyReport.find({ className });
-
-        // Get unique students by rollNo
-        const uniqueStudentsMap = new Map();
-        allStudentsInCollection.forEach(s => {
-            if (!uniqueStudentsMap.has(s.rollNo)) {
-                uniqueStudentsMap.set(s.rollNo, {
-                    rollNo: s.rollNo,
-                    registerNo: s.registerNo,
-                    name: s.name,
-                    leetcodeLink: s.leetcodeLink,
-                    className: s.className,
-                    batchYear: s.batchYear,
-                    startTotal: s.startTotal || 0
-                });
-            }
-        });
-
-        const students = Array.from(uniqueStudentsMap.values());
+        const Student = getStudentModel(Number(batchYear));
+        const students = await Student.find({ className });
         // console.log(`Found ${students.length} students in Monthly DB collection for Batch ${batchYear} Class ${className}`);
 
         if (students.length === 0) {
@@ -111,11 +91,13 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
                         baselineTotal = lastMonthReport.weeklyPerformance[lastMonthReport.weeklyPerformance.length - 1].solved.total;
                     }
 
+                    /* 
                     ops.push({
                         deleteOne: {
                             filter: { rollNo: student.rollNo, month: { $ne: month } }
                         }
                     });
+                    */
 
                     ops.push({
                         insertOne: {
@@ -260,16 +242,34 @@ router.get("/:batchYear/:className", async (req, res) => {
             month = date.toLocaleString('default', { month: 'long' }) + " " + date.getFullYear();
         }
 
-        const query = { className, month };
+        const query = { className };
+        if (month) {
+            query.month = month;
+        }
 
-        let reports = await MonthlyReport.find(query).sort({ rollNo: 1 });
+        let reports;
+        if (month) {
+            reports = await MonthlyReport.find(query).sort({ rollNo: 1 });
+        } else {
+            // Find the most recent month that has any reports for this class
+            const latestDoc = await MonthlyReport.findOne({ className }).sort({ reportDate: -1 });
+            if (latestDoc) {
+                const latestMonth = latestDoc.month;
+                reports = await MonthlyReport.find({ className, month: latestMonth }).sort({ rollNo: 1 });
+            } else {
+                reports = [];
+            }
+        }
 
         // Fetch all unique students that have EVER been in this class's monthly reports
         const allStudentsInCollection = await MonthlyReport.find({ className });
         const uniqueStudentsMap = new Map();
 
         // 1. Populate map with all known students from history
-        allStudentsInCollection.forEach(s => {
+        // Use the most recent basic info for each student
+        const sortedAll = [...allStudentsInCollection].sort((a, b) => new Date(b.reportDate) - new Date(a.reportDate));
+
+        sortedAll.forEach(s => {
             if (!uniqueStudentsMap.has(s.rollNo)) {
                 uniqueStudentsMap.set(s.rollNo, {
                     rollNo: s.rollNo,
@@ -278,7 +278,7 @@ router.get("/:batchYear/:className", async (req, res) => {
                     leetcodeLink: s.leetcodeLink,
                     className: s.className,
                     batchYear: s.batchYear,
-                    month: month,
+                    month: s.month, // Default to their last known month
                     startTotal: 0,
                     weeklyPerformance: [],
                     overallStatus: null,
@@ -287,7 +287,7 @@ router.get("/:batchYear/:className", async (req, res) => {
             }
         });
 
-        // 2. Overwrite with actual report data for this month if it exists
+        // 2. Overwrite with actual report data for this query if it exists
         reports.forEach(r => {
             uniqueStudentsMap.set(r.rollNo, r); // This removes the isPlaceholder flag since 'r' is a real doc
         });

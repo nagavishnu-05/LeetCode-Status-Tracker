@@ -804,7 +804,6 @@ export default function App() {
           isOpen={monthlyReportOpen}
           onClose={() => {
             setMonthlyReportOpen(false);
-            setIsVerified(false);
           }}
           batchYear={reportBatchYear}
           className={reportClassName}

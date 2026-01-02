@@ -16,11 +16,7 @@ export default function MonthlyReportModal({
 }) {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const date = new Date();
-        return date.toLocaleString('default', { month: 'long' }) + " " + date.getFullYear();
-    });
-    const [availableMonths, setAvailableMonths] = useState([]);
+    const [selectedMonth, setSelectedMonth] = useState("");
 
     // Internal state for selection
     const [selectedBatch, setSelectedBatch] = useState(initialBatchYear || "");
@@ -112,7 +108,7 @@ export default function MonthlyReportModal({
 
             [1, 2, 3, 4, 5].forEach((week) => {
                 const weekData = report.weeklyPerformance.find((w) => w.weekNumber === week);
-                row[`Week ${week}`] = weekData ? `${weekData.performanceCategory} (${weekData.solved.total})` : "-";
+                row[`Week ${week}`] = weekData ? weekData.solved.total : "-";
             });
 
             row["Status"] = report.overallStatus || "Pending";
@@ -125,7 +121,7 @@ export default function MonthlyReportModal({
 
         const romanYear = getRomanYear(selectedBatch);
         const formattedDate = formatDate(new Date());
-        const fileName = `${romanYear} CSE ${selectedClass} LeetCode Status - ${formattedDate}.xlsx`;
+        const fileName = `${romanYear} CSE ${selectedClass} LeetCode Monthly Report - ${formattedDate}.xlsx`;
         XLSX.writeFile(workbook, fileName);
     };
 
@@ -284,12 +280,21 @@ export default function MonthlyReportModal({
                                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
                                                         Student Name
                                                     </th>
-                                                    {[1, 2, 3, 4, 5].map((week) => (
+                                                    {[
+                                                        { label: "Week 1", day: "4th" },
+                                                        { label: "Week 2", day: "11th" },
+                                                        { label: "Week 3", day: "18th" },
+                                                        { label: "Week 4", day: "25th" },
+                                                        { label: "Week 5", day: "2nd" },
+                                                    ].map((wk) => (
                                                         <th
-                                                            key={week}
+                                                            key={wk.label}
                                                             className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest"
                                                         >
-                                                            Week {week}
+                                                            <div className="flex flex-col items-center">
+                                                                <span>{wk.label}</span>
+                                                                <span className="text-[10px] text-gray-400 font-medium">({wk.day})</span>
+                                                            </div>
                                                         </th>
                                                     ))}
                                                     <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest bg-gray-100/50">
