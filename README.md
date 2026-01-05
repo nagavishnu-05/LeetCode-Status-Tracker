@@ -28,8 +28,19 @@ A **full-stack web application** for tracking, reporting, and ranking LeetCode p
 - Mobile-friendly, scrollable data tables.
 - Custom toast notifications and a global loading indicator.
 
-### ⏰ Automated Reports (Cron Job)
-- Backend cron job (`node-cron`) automatically generates weekly progress reports on the 4th, 11th, 18th, 25th of each month (and 2nd for Week 5).
+### ⏰ Automated Monthly Reports
+
+**Automatic Weekly Progress Reports** are generated on the **4th, 11th, 18th, 25th** of each month, and the **2nd** (for Week 5) at **6:00 PM IST**.
+
+#### Multiple Trigger Methods:
+
+1. **Node-cron (Built-in)**: Backend includes `node-cron` that auto-triggers reports if server runs continuously on Render
+2. **GitHub Actions (Recommended)**: Reliable cloud-based scheduler in `.github/workflows/monthly-reports.yml`
+3. **External Cron Services**: Configure cron-job.org or similar (see `Backend/CRON_SETUP.md`)
+
+> **⚠️ Important for Render Free Tier**: Free instances spin down after 15 minutes of inactivity, which breaks the built-in cron. Use GitHub Actions or external cron services for reliability.
+
+See [`Backend/CRON_SETUP.md`](Backend/CRON_SETUP.md) for detailed configuration instructions.
 
 ---
 
@@ -153,6 +164,7 @@ npm run dev
 
 | Method | Endpoint                          | Description                                      |
 |--------|-----------------------------------|--------------------------------------------------|
+| GET    | `/health`                         | Health check endpoint (server status & cron info) |
 | GET    | `/staffs/distinct`                | Get distinct batch years                        |
 | GET    | `/report/:batchYear/:className`   | Get student stats for a specific batch/section  |
 | GET    | `/rounds`                         | Get rankings (with optional `batchYear` & `className` query) |

@@ -1,0 +1,66 @@
+name: Monthly Report Generation
+
+on:
+  schedule:
+    # Run at 6:00 PM IST (12:30 PM UTC) on scheduled days
+    # 4th of every month
+    - cron: '30 12 4 * *'
+    # 11th of every month
+    - cron: '30 12 11 * *'
+    # 18th of every month
+    - cron: '30 12 18 * *'
+    # 25th of every month
+    - cron: '30 12 25 * *'
+    # 2nd of every month
+    - cron: '30 12 2 * *'
+  
+  # Allow manual trigger for testing or recovery
+  workflow_dispatch:
+    inputs:
+      dayOverride:
+        description: 'Day to override (4, 11, 18, 25, or 2)'
+        required: false
+        default: ''
+
+jobs:
+  trigger-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Monthly Report
+        run: |
+          echo "Triggering monthly report generation..."
+          
+          if [ -n "${{ github.event.inputs.dayOverride }}" ]; then
+            RESPONSE=$(curl -s -w "\n%{http_code}" \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -d '{"dayOverride": ${{ github.event.inputs.dayOverride }}}' \
+              https://leetcode-status-tracker.onrender.com/api/admin/trigger-report)
+          else
+            RESPONSE=$(curl -s -w "\n%{http_code}" \
+              -X POST \
+              https://leetcode-status-tracker.onrender.com/api/admin/trigger-report)
+          fi
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Report generation triggered successfully"
+          else
+            echo "❌ Failed to trigger report generation"
+            exit 1
+          fi
+      
+      - name: Report Status
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "📊 Monthly report workflow completed successfully"
+          else
+            echo "⚠️ Monthly report workflow encountered errors"
+          fi

@@ -40,6 +40,20 @@ app.use("/students", studentRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/report", reportRoutes);
 app.use("/rounds", roundsRoutes);
+
+// Health check endpoint to prevent Render from spinning down
+app.get("/health", (req, res) => {
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    istTime: istTime.toLocaleString(),
+    cronActive: true,
+    nextReportDays: [2, 4, 11, 18, 25]
+  });
+});
+
 app.use("/monthly-report", monthlyReportRoutes);
 
 // Helper function to run the report generation process
@@ -120,12 +134,44 @@ app.all("/api/admin/trigger-report", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📅 Cron Job Status: ACTIVE`);
+  console.log(`⏰ Schedule: Daily at 6:00 PM IST (18:00 Asia/Kolkata)`);
+  console.log(`📊 Report Days: 4th, 11th, 18th, 25th, and 2nd of next month`);
+
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  console.log(`🕐 Current IST Time: ${istTime.toLocaleString()}`);
+  console.log(`📍 Current Day: ${istTime.getDate()}`);
+
+  // Calculate next scheduled report
+  const today = istTime.getDate();
+  const reportDays = [2, 4, 11, 18, 25];
+  const nextDay = reportDays.find(day => day > today) || reportDays[0];
+  console.log(`📆 Next Scheduled Report: ${nextDay}${nextDay === 1 ? 'st' : nextDay === 2 ? 'nd' : nextDay === 3 ? 'rd' : 'th'} at 6:00 PM IST`);
+  console.log(`${"=".repeat(60)}\n`);
+});
 
 // Cron Job: Run every day at 6:00 PM IST
-cron.schedule("00 18 * * *", () => {
-  console.log("⏱️ Cron Trigger: Checking for scheduled reports...");
-  runReportProcess();
+cron.schedule("00 18 * * *", async () => {
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`⏱️  CRON JOB TRIGGERED`);
+  console.log(`🕐 Trigger Time (IST): ${istTime.toLocaleString()}`);
+  console.log(`📍 Day of Month: ${istTime.getDate()}`);
+  console.log(`${"=".repeat(60)}\n`);
+
+  try {
+    await runReportProcess();
+    console.log(`✅ Cron job execution completed successfully\n`);
+  } catch (error) {
+    console.error(`❌ Cron job execution failed:`, error);
+  }
 }, {
   timezone: "Asia/Kolkata"
 });
