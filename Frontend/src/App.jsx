@@ -311,11 +311,14 @@ export default function App() {
   const getRomanYear = (batchYear) => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
-    const gradYear = parseInt(batchYear);
-    if (isNaN(gradYear)) return "";
-    let yearsLeft = gradYear - currentYear;
-    if (currentMonth >= 5) yearsLeft--;
-    const studyYear = 4 - yearsLeft;
+    const joinYear = parseInt(batchYear);
+    if (isNaN(joinYear)) return "";
+
+    let studyYear = currentYear - joinYear;
+    if (currentMonth >= 5) {
+      studyYear += 1;
+    }
+
     const numerals = ["", "I", "II", "III", "IV"];
     return numerals[Math.min(Math.max(studyYear, 1), 4)];
   };

@@ -57,13 +57,31 @@ export default function MonthlyReportModal({
 
     const getRomanYear = (batchYear) => {
         const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth();
-        const gradYear = parseInt(batchYear);
-        if (isNaN(gradYear)) return "";
-        let yearsLeft = gradYear - currentYear;
-        if (currentMonth >= 5) yearsLeft--;
-        const studyYear = 4 - yearsLeft;
+        const currentMonth = new Date().getMonth(); // 0-11
+        const joinYear = parseInt(batchYear);
+        if (isNaN(joinYear)) return "";
+
+        // Calculate academic year
+        // If we are in Jan-May (months 0-4), we are in the second semester of the academic year
+        // So simple subtraction gives the year (e.g., Jan 2026 - 2025 join = 1st year)
+        // If we happen to be in June-Dec (months 5-11), we have started the NEXT academic year
+        // (e.g., June 2026 - 2025 join = 1 year diff, but actually starting 2nd year)
+
+        let studyYear = currentYear - joinYear;
+
+        // If we are in the second half of the calendar year (June onwards), 
+        // we move to the next academic year.
+        if (currentMonth >= 5) {
+            studyYear += 1;
+        }
+
+        // Just in case currentMonth is Jan-May, the simple diff is correct for "current" academic year?
+        // Let's trace:
+        // Jan 2026, Batch 2025. Diff=1. Month=0. Result = 1 (I). Correct.
+        // Jan 2026, Batch 2022. Diff=4. Month=0. Result = 4 (IV). Correct.
+
         const numerals = ["", "I", "II", "III", "IV"];
+        // Ensure within bounds 1-4
         return numerals[Math.min(Math.max(studyYear, 1), 4)];
     };
 
