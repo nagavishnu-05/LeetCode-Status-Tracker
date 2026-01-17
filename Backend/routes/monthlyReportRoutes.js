@@ -19,6 +19,7 @@ function extractUsername(input) {
 export async function generateMonthlyReport(batchYear, className, month, weekNumber) {
     try {
         const Student = getStudentModel(Number(batchYear));
+        const MonthlyReport = getMonthlyReportModel(Number(batchYear));
         const students = await Student.find({ className });
         // console.log(`Found ${students.length} students in Monthly DB collection for Batch ${batchYear} Class ${className}`);
 
