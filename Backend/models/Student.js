@@ -19,18 +19,19 @@ const studentSchema = new mongoose.Schema({
   batchYear: { type: Number, required: true },
   leetcodeLink: { type: String, default: null },
   statsHistory: { type: [statsSchema], default: [] },
-});
+}, { autoCreate: false, autoIndex: false });
 
 // Dynamic model factory - creates models for batch-specific collections
-export function getStudentModel(batchYear) {
+export function getStudentModel(batchYear, db = mongoose) {
   const collectionName = `${batchYear}-${batchYear + 4}`;
+  const modelName = `Student_${collectionName}`;
 
-  // Check if model already exists to avoid OverwriteModelError
-  if (mongoose.models[collectionName]) {
-    return mongoose.models[collectionName];
+  // Check if model already exists on the provided connection to avoid OverwriteModelError
+  if (db.models[modelName]) {
+    return db.models[modelName];
   }
 
-  return mongoose.model(collectionName, studentSchema, collectionName);
+  return db.model(modelName, studentSchema, collectionName);
 }
 
 // Export schema for potential reuse

@@ -22,6 +22,22 @@ export default function MonthlyReportModal({
     const [selectedBatch, setSelectedBatch] = useState(initialBatchYear || "");
     const [selectedClass, setSelectedClass] = useState(initialClassName || "");
     const [classOptions, setClassOptions] = useState([]);
+    const [availableBatches, setAvailableBatches] = useState([]);
+
+    // Fetch available batches for monthly reports
+    useEffect(() => {
+        const fetchAvailableBatches = async () => {
+            try {
+                const res = await api.get("/monthly-report/distinct-batches");
+                setAvailableBatches(res.data.batchYears || []);
+            } catch (err) {
+                console.error("Error fetching monthly batches:", err);
+            }
+        };
+        if (isOpen) {
+            fetchAvailableBatches();
+        }
+    }, [isOpen]);
 
     // Update class options when batch changes
     useEffect(() => {
@@ -222,7 +238,7 @@ export default function MonthlyReportModal({
                                         onChange={(e) => setSelectedBatch(e.target.value)}
                                     >
                                         <option value="">Select Batch</option>
-                                        {batchYears.map((yr) => (
+                                        {availableBatches.map((yr) => (
                                             <option key={yr} value={yr}>{yr}</option>
                                         ))}
                                     </select>

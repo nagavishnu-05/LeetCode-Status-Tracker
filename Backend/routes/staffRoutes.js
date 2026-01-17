@@ -38,9 +38,23 @@ router.get("/:staffId/students", async (req, res) => {
 // Get unique batchYears and classNames
 router.get("/distinct", async (req, res) => {
   try {
-    const batchYears = await Staff.distinct("batchYear");
+    const rawBatchYears = await Staff.distinct("batchYear");
     const classNames = await Staff.distinct("className");
-    res.json({ batchYears, classNames });
+
+    // Filter batchYears to only include those that HAVE collections in the DB
+    const mongoose = (await import("mongoose")).default;
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connection.asPromise();
+    }
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const existingCollections = collections.map(c => c.name);
+
+    const validBatchYears = rawBatchYears.filter(year => {
+      const collectionName = `${year}-${year + 4}`;
+      return existingCollections.includes(collectionName);
+    });
+
+    res.json({ batchYears: validBatchYears, classNames });
   } catch (err) {
     console.error("❌ Error fetching distinct values:", err);
     res.status(500).json({ message: "Internal Server Error" });

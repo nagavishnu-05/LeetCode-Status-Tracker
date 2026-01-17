@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import api from "./api";
 import MonthlyReportModal from "./components/MonthlyReportModal";
 import StaffVerificationModal from "./components/StaffVerificationModal";
+import SnapshotWeekModal from "./components/SnapshotWeekModal";
 import Loader from "./components/Loader";
 import Toast from "./components/Toast";
 import './select.css';
@@ -28,6 +29,7 @@ export default function App() {
 
   // Verification State
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [snapshotModalOpen, setSnapshotModalOpen] = useState(false);
   const [verificationError, setVerificationError] = useState("");
   const [isVerified, setIsVerified] = useState(false);
 
@@ -415,6 +417,42 @@ export default function App() {
     XLSX.writeFile(workbook, fileName);
   };
 
+  const handleStoreSnapshot = async (week) => {
+    setSnapshotModalOpen(false);
+
+    const today = new Date();
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    let reportMonthIndex = today.getMonth();
+    let reportYear = today.getFullYear();
+
+    // Week 5 logic: if it's week 5 (triggered on 2nd), it belongs to the previous month
+    if (parseInt(week) === 5) {
+      reportMonthIndex = reportMonthIndex - 1;
+      if (reportMonthIndex < 0) {
+        reportMonthIndex = 11;
+        reportYear = reportYear - 1;
+      }
+    }
+    const currentMonth = `${monthNames[reportMonthIndex]} ${reportYear}`;
+
+    try {
+      setLoading(true);
+      const res = await api.post(`/monthly-report/generate/${reportBatchYear}/${reportClassName}`, {
+        weekNumber: parseInt(week),
+        month: currentMonth
+      });
+      setToast({ message: res.data.message || "Monthly snapshot stored successfully!", type: "success", visible: true });
+    } catch (err) {
+      console.error("Error storing monthly snapshot:", err);
+      setToast({ message: err.response?.data?.message || "Failed to store monthly snapshot", type: "error", visible: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col p-6">
       <header className="w-full flex items-center justify-between mb-10">
@@ -585,6 +623,15 @@ export default function App() {
                 >
                   <Download size={18} /> Export to Excel
                 </button>
+                {isVerified && (
+                  <button
+                    onClick={() => setSnapshotModalOpen(true)}
+                    title="Administrators can manually store a performance snapshot for a specific week if needed."
+                    className="flex items-center gap-2 bg-purple-600 text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-purple-700 shadow-lg shadow-purple-600/20 transition-all active:scale-95"
+                  >
+                    <Calendar size={18} /> Store Admin Snapshot
+                  </button>
+                )}
                 <button
                   onClick={() => setPopupOpen(false)}
                   className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-900"
@@ -802,6 +849,12 @@ export default function App() {
           </Motion.div>
         </div>
       )}
+      <SnapshotWeekModal
+        isOpen={snapshotModalOpen}
+        onClose={() => setSnapshotModalOpen(false)}
+        onSelect={handleStoreSnapshot}
+      />
+
       {monthlyReportOpen && (
         <MonthlyReportModal
           isOpen={monthlyReportOpen}

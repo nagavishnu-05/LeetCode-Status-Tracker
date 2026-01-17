@@ -45,13 +45,14 @@ const monthlyReportSchema = new mongoose.Schema({
 // Dynamic model factory for Monthly Reports
 export function getMonthlyReportModel(batchYear) {
     const collectionName = `${batchYear}-${batchYear + 4}`;
+    const modelName = `Report_${collectionName}`;
 
     // Check if model already exists on the monthlyDB connection
-    if (monthlyDB.models[collectionName]) {
-        return monthlyDB.models[collectionName];
+    if (monthlyDB.models[modelName]) {
+        return monthlyDB.models[modelName];
     }
 
-    return monthlyDB.model(collectionName, monthlyReportSchema, collectionName);
+    return monthlyDB.model(modelName, monthlyReportSchema, collectionName);
 }
 
 export { monthlyReportSchema };
