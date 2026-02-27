@@ -8,6 +8,7 @@ import StaffVerificationModal from "./components/StaffVerificationModal";
 import SnapshotWeekModal from "./components/SnapshotWeekModal";
 import Loader from "./components/Loader";
 import Toast from "./components/Toast";
+import AboutUsModal from "./components/AboutUsModal";
 import './select.css';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
   const [snapshotModalOpen, setSnapshotModalOpen] = useState(false);
   const [verificationError, setVerificationError] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const [aboutUsOpen, setAboutUsOpen] = useState(false);
 
 
   // Rankings fetch
@@ -473,7 +475,7 @@ export default function App() {
           onClose={() => setToast((prev) => ({ ...prev, visible: false }))}
         />
       )}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center py-10 gap-6">
         <Motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -585,6 +587,27 @@ export default function App() {
               </Motion.button>
             </div>
           </form>
+        </Motion.div>
+
+        {/* Meet our Team Section */}
+        <Motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="w-full max-w-xl bg-white border border-gray-100 rounded-2xl shadow-lg p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3 ml-2">
+            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <Users size={18} />
+            </div>
+            <span className="text-sm font-bold text-gray-700">Meet our Team</span>
+          </div>
+          <button
+            onClick={() => setAboutUsOpen(true)}
+            className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all active:scale-95"
+          >
+            About Us
+          </button>
         </Motion.div>
       </div>
 
@@ -869,6 +892,11 @@ export default function App() {
           setVerificationError={setVerificationError}
         />
       )}
+
+      <AboutUsModal
+        isOpen={aboutUsOpen}
+        onClose={() => setAboutUsOpen(false)}
+      />
     </div>
   );
 }
