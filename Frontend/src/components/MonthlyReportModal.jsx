@@ -141,7 +141,7 @@ export default function MonthlyReportModal({
             };
 
             [1, 2, 3, 4, 5].forEach((week) => {
-                const weekData = report.weeklyPerformance.find((w) => w.weekNumber === week);
+                const weekData = report.weeklyPerformance?.find((w) => w.weekNumber === week);
                 row[`Week ${week}`] = weekData ? weekData.solved.total : "-";
             });
 
@@ -349,7 +349,7 @@ export default function MonthlyReportModal({
                                                             {studentReport.name}
                                                         </td>
                                                         {[1, 2, 3, 4, 5].map((week) => {
-                                                            const weekData = studentReport.weeklyPerformance.find(
+                                                            const weekData = studentReport.weeklyPerformance?.find(
                                                                 (w) => w.weekNumber === week
                                                             );
                                                             return (
