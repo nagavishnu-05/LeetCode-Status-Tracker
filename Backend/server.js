@@ -73,6 +73,7 @@ app.all("/api/admin/trigger-report", async (req, res) => {
     await runReportProcess(dayOverride, weekNumber);
     res.json({ message: "Report generation process completed. Check server logs for details." });
   } catch (err) {
+    console.error("Error details:", err.stack);
     res.status(500).json({ message: "Failed to run report process", error: err.message });
   }
 });
