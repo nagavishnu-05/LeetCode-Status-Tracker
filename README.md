@@ -187,8 +187,8 @@ npm run dev
 
 ## 👨‍💻 Authors & Maintainers
 
-- **Nagavishnu Karthik B S** - Full-Stack Development
-- **Devis Aruna Devi D** - Project Support
+- **Nagavishnu Karthik B S** - Frontend
+- **Devis Aruna Devi D** - Backend
 
 ---
 
@@ -220,3 +220,4 @@ This project is intended for **academic and internal use** by VCET's CSE Departm
 <p align="center">
   <strong>© 2023 – 2027 | CSE Department, VCET</strong>
 </p>
+
