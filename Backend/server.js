@@ -70,11 +70,18 @@ app.all("/api/admin/trigger-report", async (req, res) => {
 
     console.log(`🔌 Manual trigger received (Day: ${dayOverride || 'Today'}, Week: ${weekNumber || 'Auto'})`);
 
-    await runReportProcess(dayOverride, weekNumber);
-    res.json({ message: "Report generation process completed. Check server logs for details." });
+    // Run in background without awaiting completion to prevent HTTP timeout
+    runReportProcess(dayOverride, weekNumber)
+      .then(() => console.log("✅ Background report generation completed."))
+      .catch(err => console.error("❌ Background report generation failed:", err));
+
+    res.json({
+      message: "Report generation process started in the background. Check server logs for details.",
+      status: "processing"
+    });
   } catch (err) {
     console.error("Error details:", err.stack);
-    res.status(500).json({ message: "Failed to run report process", error: err.message });
+    res.status(500).json({ message: "Failed to trigger report process", error: err.message });
   }
 });
 

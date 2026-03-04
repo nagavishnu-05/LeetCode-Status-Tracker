@@ -50,10 +50,13 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
 
         const reportData = [];
         const batchSize = 30;
-        const ops = [];
 
         for (let i = 0; i < students.length; i += batchSize) {
             const batch = students.slice(i, i + batchSize);
+            const ops = [];
+
+            console.log(`   - [${className}] Processing students ${i + 1} to ${Math.min(i + batchSize, students.length)} of ${students.length}...`);
+
             await Promise.all(batch.map(async (student) => {
                 let currentStats = { easy: 0, medium: 0, hard: 0, total: 0 };
 
@@ -78,13 +81,25 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
                                         };
                                     }
                                     break;
+                                } else {
+                                    // Handle non-ok response by decrementing retries
+                                    retries--;
+                                    if (retries === 0) {
+                                        console.log(`      ⚠️ API Error for ${student.rollNo}: HTTP ${apiRes.status}`);
+                                    } else {
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                    }
                                 }
                             } else {
                                 break;
                             }
                         } catch (err) {
                             retries--;
-                            if (retries > 0) await new Promise(resolve => setTimeout(resolve, 500));
+                            if (retries > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            } else {
+                                console.log(`      ⚠️ API Timeout/Error for ${student.rollNo}: ${err.message}`);
+                            }
                         }
                     }
                 }
@@ -189,10 +204,15 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
                     });
                 }
             }));
+
+            // Incremental save per batch
+            if (ops.length > 0) {
+                await MonthlyReport.bulkWrite(ops);
+            }
+
             if (i + batchSize < students.length) await new Promise(resolve => setTimeout(resolve, 300));
         }
 
-        if (ops.length > 0) await MonthlyReport.bulkWrite(ops);
         return { success: true, count: students.length };
     } catch (err) {
         console.error("Error in generateMonthlyReport:", err);
@@ -258,13 +278,14 @@ export async function runReportProcess(dayOverride = null, weekNumberOverride = 
 
                 console.log(`📊 [Service] Processing Batch ${batchYear} Class(es): ${distinctClasses.join(', ')}`);
 
-                await Promise.all(distinctClasses.map(async (className) => {
+                for (const className of distinctClasses) {
                     try {
+                        console.log(`   - Processing Class ${className}...`);
                         await generateMonthlyReport(batchYear, className, currentMonth, weekNumber);
                     } catch (err) {
                         console.error(`❌ [Service] Failed for Batch ${batchYear} Class ${className}:`, err.message);
                     }
-                }));
+                }
             }
         } catch (err) {
             console.error("❌ [Service] Error in report process:", err);

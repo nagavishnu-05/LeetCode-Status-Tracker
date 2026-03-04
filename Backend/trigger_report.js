@@ -5,25 +5,36 @@ import fetch from "node-fetch";
  * Usage: node trigger_report.js [dayOverride] [weekNumber]
  */
 async function trigger() {
-    const dayOverride = process.argv[2] ? parseInt(process.argv[2]) : null;
-    const weekNumber = process.argv[3] ? parseInt(process.argv[3]) : null;
+    const args = process.argv.filter(arg => !arg.startsWith("--"));
+    const dayOverride = args[2] ? parseInt(args[2]) : null;
+    const weekNumber = args[3] ? parseInt(args[3]) : null;
+
+    const isProduction = process.argv.includes("--prod");
+    const baseUrl = isProduction
+        ? "https://leetcode-status-tracker.onrender.com"
+        : "http://localhost:5000";
 
     console.log(`🚀 Triggering Monthly Report Process...`);
+    console.log(`   - Environment: ${isProduction ? "Production" : "Local"}`);
     if (dayOverride) console.log(`   - Day Override: ${dayOverride}`);
     if (weekNumber) console.log(`   - Week Number: ${weekNumber}`);
 
     try {
-        const response = await fetch("http://localhost:5000/api/admin/trigger-report", {
+        const response = await fetch(`${baseUrl}/api/admin/trigger-report`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ dayOverride, weekNumber })
         });
 
         const data = await response.json();
-        console.log("\n✅ Response from Server:", data);
+        if (response.ok) {
+            console.log("\n✅ Success:", data.message || data);
+        } else {
+            console.error("\n❌ Server Error:", data.message || data);
+        }
     } catch (error) {
         console.error("\n❌ Error triggering report:", error.message);
-        console.log("Ensure the backend server is running on port 5000.");
+        if (!isProduction) console.log("Ensure the backend server is running on port 5000.");
     }
 }
 

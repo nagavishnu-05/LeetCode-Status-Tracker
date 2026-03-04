@@ -21,6 +21,10 @@ on:
         description: 'Day to override (4, 11, 18, 25, or 2)'
         required: false
         default: ''
+      weekNumber:
+        description: 'Week Number to override (1, 2, 3, 4, or 5)'
+        required: false
+        default: ''
 
 jobs:
   trigger-report:
@@ -31,17 +35,30 @@ jobs:
         run: |
           echo "Triggering monthly report generation..."
           
-          if [ -n "${{ github.event.inputs.dayOverride }}" ]; then
-            RESPONSE=$(curl -s -w "\n%{http_code}" \
-              -X POST \
-              -H "Content-Type: application/json" \
-              -d '{"dayOverride": ${{ github.event.inputs.dayOverride }}}' \
-              https://leetcode-status-tracker.onrender.com/api/admin/trigger-report)
-          else
-            RESPONSE=$(curl -s -w "\n%{http_code}" \
-              -X POST \
-              https://leetcode-status-tracker.onrender.com/api/admin/trigger-report)
+          # Prepare data payload
+          DAY_OVERRIDE="${{ github.event.inputs.dayOverride }}"
+          WEEK_OVERRIDE="${{ github.event.inputs.weekNumber }}"
+          
+          DATA="{}"
+          if [ -n "$DAY_OVERRIDE" ]; then
+            DATA=$(echo $DATA | jq -c ". + {dayOverride: ($DAY_OVERRIDE | tonumber)}")
           fi
+          if [ -n "$WEEK_OVERRIDE" ]; then
+            DATA=$(echo $DATA | jq -c ". + {weekNumber: ($WEEK_OVERRIDE | tonumber)}")
+          fi
+          
+          echo "Payload: $DATA"
+          
+          # Trigger request with retries and timeout
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "$DATA" \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            https://leetcode-status-tracker.onrender.com/api/admin/trigger-report)
           
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
