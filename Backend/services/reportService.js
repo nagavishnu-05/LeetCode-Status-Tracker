@@ -1,6 +1,8 @@
 import { monthlyDB } from "../config/db.js";
 import { getMonthlyReportModel } from "../models/MonthlyReport.js";
 import fetch from "node-fetch";
+import { generateMonthlyExcel } from "./excelService.js";
+import { sendMonthlyReportEmail } from "./emailService.js";
 
 // Helper to extract username
 function extractUsername(input) {
@@ -221,6 +223,125 @@ export async function generateMonthlyReport(batchYear, className, month, weekNum
 }
 
 /**
+ * Generates an Excel report for a specific class and emails it to the recipient.
+ */
+export async function generateAndEmailMonthlySummary(batchYear, className, month) {
+    try {
+        const MonthlyReport = getMonthlyReportModel(Number(batchYear));
+        const reports = await MonthlyReport.find({ className, month }).sort({ rollNo: 1 });
+
+        if (reports.length === 0) {
+            console.log(`⚠️ [Email] No reports found for Batch ${batchYear} Class ${className} in ${month}. Skipping email.`);
+            return;
+        }
+
+        console.log(`📊 [Email] Generating Excel for Batch ${batchYear} Class ${className}...`);
+        const excelBuffer = await generateMonthlyExcel(reports, className, batchYear, month);
+
+        console.log(`📧 [Email] Sending report to recipient...`);
+        await sendMonthlyReportEmail(excelBuffer, className, batchYear, month);
+
+        console.log(`✅ [Email] Successfully processed Batch ${batchYear} Class ${className}`);
+    } catch (err) {
+        console.error(`❌ [Email] Failed to process Batch ${batchYear} Class ${className}:`, err.message);
+    }
+}
+
+/**
+ * Orchestrates sending monthly reports for all classes at the end of the month.
+ * @param {string} dayOverride - Optional day to trigger (usually 2)
+ * @param {string} monthOverride - Optional month string (e.g. "March 2026")
+ */
+export async function sendAllMonthlyReports(dayOverride = null, monthOverride = null) {
+    const today = new Date();
+    const day = dayOverride || today.getDate();
+
+    // Trigger on Day 2 or if a month is explicitly provided (manual trigger)
+    if (day == 2 || monthOverride || dayOverride) {
+        console.log(`\n📧 [Email] Starting ${monthOverride ? 'Manual' : 'Automated'} Monthly Report Delivery...`);
+
+        try {
+            if (!monthlyDB.db) {
+                console.error("❌ [Email] Database connection not ready. Please check your MONGO_URI and network connection.");
+                return;
+            }
+            const collections = await monthlyDB.db.listCollections().toArray();
+            const studentCollections = [];
+
+            for (const col of collections) {
+                if (/^\d{4}-\d{4}$/.test(col.name)) {
+                    studentCollections.push({
+                        name: col.name,
+                        startYear: parseInt(col.name.split('-')[0])
+                    });
+                }
+            }
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            let currentMonth = monthOverride;
+
+            if (!currentMonth) {
+                // Default logic: Week 5 triggered on 2nd of month refers to PREVIOUS month
+                let reportMonthIndex = today.getMonth() - 1;
+                let reportYear = today.getFullYear();
+                if (reportMonthIndex < 0) {
+                    reportMonthIndex = 11;
+                    reportYear = reportYear - 1;
+                }
+                currentMonth = `${monthNames[reportMonthIndex]} ${reportYear}`;
+            }
+
+            console.log(`📅 [Email] Target Month: ${currentMonth}`);
+
+            for (const batchInfo of studentCollections) {
+                const batchYear = batchInfo.startYear;
+                const { getStudentModel } = await import('../models/Student.js');
+                const Student = getStudentModel(batchYear, monthlyDB);
+                const distinctClasses = await Student.distinct('className');
+
+                for (const className of distinctClasses) {
+                    await generateAndEmailMonthlySummary(batchYear, className, currentMonth);
+                }
+            }
+            console.log(`✅ [Email] All scheduled monthly reports have been processed.\n`);
+        } catch (err) {
+            console.error("❌ [Email] Error in batch email process:", err);
+        }
+    } else {
+        console.log(`ℹ️ [Email] Day ${day} is not a scheduled email delivery day.`);
+    }
+}
+
+/**
+ * Cleans up the monthly database by deleting all records.
+ * This is triggered at the start of a new month cycle (Day 3).
+ */
+export async function cleanupMonthlyDatabase() {
+    console.log(`\n🧹 [Cleanup] Starting Monthly Database Refresh...`);
+    try {
+        if (!monthlyDB.db) {
+            console.error("❌ [Cleanup] Database connection not ready. Cannot perform cleanup.");
+            return;
+        }
+        const collections = await monthlyDB.db.listCollections().toArray();
+        let deletedCount = 0;
+
+        for (const col of collections) {
+            if (/^\d{4}-\d{4}$/.test(col.name)) {
+                const result = await monthlyDB.db.collection(col.name).deleteMany({});
+                deletedCount += result.deletedCount;
+                console.log(`   - Cleared ${result.deletedCount} records from collection ${col.name}`);
+            }
+        }
+        console.log(`✅ [Cleanup] Database refresh completed. Total records cleared: ${deletedCount}\n`);
+    } catch (err) {
+        console.error("❌ [Cleanup] Error during database refresh:", err);
+        throw err;
+    }
+}
+
+/**
  * Orchestrates the monthly report generation process across all batches and classes.
  */
 export async function runReportProcess(dayOverride = null, weekNumberOverride = null) {
@@ -240,6 +361,10 @@ export async function runReportProcess(dayOverride = null, weekNumberOverride = 
         console.log(`\n📅 [Service] Triggering Weekly Report (Week ${weekNumber})`);
 
         try {
+            if (!monthlyDB.db) {
+                console.error("❌ [Service] Database connection not ready. Aborting report process.");
+                return;
+            }
             const collections = await monthlyDB.db.listCollections().toArray();
             const studentCollections = [];
 

@@ -10,7 +10,7 @@ import roundsRoutes from "./routes/roundsRoutes.js";
 import monthlyReportRoutes from "./routes/monthlyReportRoutes.js";
 import legacyMonthlyRoutes from "./routes/legacyMonthlyRoutes.js";
 import { initCronJobs } from "./services/cronService.js";
-import { runReportProcess } from "./services/reportService.js";
+import { runReportProcess, sendAllMonthlyReports, cleanupMonthlyDatabase } from "./services/reportService.js";
 
 dotenv.config();
 const app = express();
@@ -67,8 +67,28 @@ app.all("/api/admin/trigger-report", async (req, res) => {
   try {
     const dayOverride = req.query?.dayOverride || req.body?.dayOverride;
     const weekNumber = req.query?.weekNumber || req.body?.weekNumber;
+    const type = req.query?.type || req.body?.type; // 'stats' or 'email'
 
-    console.log(`🔌 Manual trigger received (Day: ${dayOverride || 'Today'}, Week: ${weekNumber || 'Auto'})`);
+    if (type === 'email') {
+      const month = req.query?.month || req.body?.month;
+      console.log(`🔌 Manual EMAIL trigger received (Month: ${month || 'Default'}, Day Override: ${dayOverride || 'None'})`);
+      sendAllMonthlyReports(dayOverride, month)
+        .then(() => console.log("✅ Background email process completed."))
+        .catch(err => console.error("❌ Background email process failed:", err));
+
+      return res.json({ message: `Monthly report email process for ${month || 'last month'} started in the background.`, status: "processing" });
+    }
+
+    if (type === 'cleanup') {
+      console.log(`🔌 Manual CLEANUP trigger received`);
+      cleanupMonthlyDatabase()
+        .then(() => console.log("✅ Background cleanup process completed."))
+        .catch(err => console.error("❌ Background cleanup process failed:", err));
+
+      return res.json({ message: "Monthly database cleanup process started in the background.", status: "processing" });
+    }
+
+    console.log(`🔌 Manual STATS trigger received (Day: ${dayOverride || 'Today'}, Week: ${weekNumber || 'Auto'})`);
 
     // Run in background without awaiting completion to prevent HTTP timeout
     runReportProcess(dayOverride, weekNumber)
